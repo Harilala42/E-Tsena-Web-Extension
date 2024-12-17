@@ -11,6 +11,7 @@
   "dependencies": {
     "pinia": "^2.3.0",
     "sass": "^1.83.0",
+    "vite-plugin-static-copy": "^2.2.0",
     "vue": "^3.5.12",
     "vue-router": "^4.5.0"
   },
