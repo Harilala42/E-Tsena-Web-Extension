@@ -11,9 +11,18 @@
             "128": "icons/128x128.png"
         }
     },
-    "permissions": [
-        "activeTab",
-        "storage"
+    "permissions": [],
+    "host_permissions": [
+        "https://fr.aliexpress.com/*"
+    ],
+    "background": {
+        "service_worker": "background.js"
+    },
+    "content_scripts": [
+        {
+            "matches": ["https://fr.aliexpress.com/*"],
+            "js": ["content.js"]
+        }
     ],
     "icons": {
         "16": "icons/16x16.png",
