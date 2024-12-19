@@ -11,7 +11,9 @@
             "128": "icons/128x128.png"
         }
     },
-    "permissions": [],
+    "permissions": [
+        "storage"
+    ],
     "host_permissions": [
         "https://fr.aliexpress.com/*"
     ],
