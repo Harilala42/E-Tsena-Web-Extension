@@ -11,7 +11,7 @@ chrome.tabs.onActivated.addListener((activeInfo) => {
 });
 
 // Renouvellement automatique du token avant expiration du 'access_token'
-async function generationAccessToken() {
+const generationAccessToken = async () => {
     try {
         let user = await fetch('https://e-tsena-dropshipping.onrender.com/tokenAE/getExpireTime');
         if (!user.ok)
@@ -35,7 +35,7 @@ async function generationAccessToken() {
 }
 
 // Renouvellement manuel du token avant expiration du 'refresh_token'
-function refreshAccessToken() {
+const refreshAccessToken = () => {
     chrome.storage.local.get('refresh_token_time', (result) => {
         const expirationTime = result.refresh_token_valid_time * 1000;
         const timeUntilExpiration = expirationTime - Date.now() - 60000;
