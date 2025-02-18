@@ -18,14 +18,15 @@
         "cookies"
     ],
     "host_permissions": [
-        "https://fr.aliexpress.com/*"
+        "https://fr.aliexpress.com/*",
+        "https://e-tsena-dropshipping.onrender.com/"
     ],
     "background": {
         "service_worker": "background.js"
     },
     "oauth2": {
-        "client_id": "535026693538-63f8h5tbtfqj0lakdslb271hmt2g54f1.apps.googleusercontent.com",
-        "scopes":["profile", "email"]
+        "client_id": "535026693538-tnepqqo7s68h90snlaovmupeiupar9k5.apps.googleusercontent.com",
+        "scopes":["openid", "profile", "email"]
     },
     "content_scripts": [
         {

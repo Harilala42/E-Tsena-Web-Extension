@@ -4,78 +4,71 @@
     const url_oauth20Google = 'https://e-tsena-dropshipping.onrender.com/googleOauth20/auth/google';
     const url_aeConsent = 'https://api-sg.aliexpress.com/oauth/authorize?response_type=code&force_auth=true&redirect_uri=https://e-tsena-dropshipping.onrender.com/ae_authorization/tokenAE/callback/&client_id=511504';
 
-    // Obtention d'un token pour l'envoyer au server
+    // Début de l'authentification Oauth2.0 Google
     const authentication = async () => {
         try {
-            const token = await getAuthToken();
+            const code = await getAuthorizationCode();
 
-            let response = await sendTokenToServer(token);
+            const response = await sendCodeToServer(code);
+            if (!response.ok)
+                console.error(`HTTP error! status: ${response.status}`);
 
-            if (response.status === 401) {
-                console.warn("Token expired. Attempt to refresh...");
-                const newToken = await refreshAuthToken(token);
-                let newResponse = await sendTokenToServer(newToken);
-                response = newResponse;
-            }
-            
-            if (!response.ok) {
-                console.error(`Error HTTP! Status: ${response.status}`);
-            } else {
-                const data = await response.json();
-                console.log(`Result's request: ${data.message}`);
-            }
+            const data = await response.json();
+            if (data.token)
+                chrome.storage.local.set({ 'jwt': data.token }, () => {
+                    console.warn("JWT successfully stored");
+                });
+            else
+                console.error('JWT from server is required');
         } catch (error) {
             console.error(`Error during authentication: ${error.message}`);
         }
     };
 
-    const getAuthToken = () => {
+    // Obtention d'un code de Google Server
+    const getAuthorizationCode = () => {
         return new Promise((resolve, reject) => {
-            chrome.identity.getAuthToken({ interactive: true }, (token) => {
-                if (chrome.runtime.lastError || !token)
-                    reject(`Error getting token: ${chrome.runtime.lastError?.message || 'Unknown error'}`);
-                else
-                    resolve(token);
-            });
+            var manifest = chrome.runtime.getManifest();
+
+            var client_id = encodeURIComponent(manifest.oauth2.client_id);
+            var scopes = encodeURIComponent(manifest.oauth2.scopes.join(' '));
+            var redirect_uri = chrome.identity.getRedirectURL();
+
+            var url = 'https://accounts.google.com/o/oauth2/auth' +
+                '?client_id=' + client_id +
+                '&response_type=code' +
+                '&access_type=offline' +
+                '&redirect_uri=' + redirect_uri +
+                '&scope=' + scopes;
+
+            chrome.identity.launchWebAuthFlow(
+                { url: url, interactive: true },
+                (redirect_uri) => {
+                    if (chrome.runtime.lastError)
+                        reject(`Error getting code: ${chrome.runtime.lastError.message}`);
+
+                    const urlParams = new URLSearchParams(new URL(redirect_uri).search);
+                    const authorizationCode = urlParams.get("code");
+                    resolve(authorizationCode);
+                }
+            );
         });
     };
 
-    const refreshAuthToken = (token) => {
-        return new Promise((resolve, reject) => {
-            chrome.identity.removeCachedAuthToken({ token }, () => {
-                chrome.identity.getAuthToken({ interactive: true }, (newToken) => {
-                    if (chrome.runtime.lastError || !newToken)
-                        reject(`Error getting new token: ${chrome.runtime.lastError?.message || 'Unknown error'}`);
-                    else
-                        resolve(newToken);
-                });
-            });
-        });
-    };
-
-    const sendTokenToServer = (token) => {
+    // Envoie du code vers le server
+    const sendCodeToServer = (code) => {
         return fetch(url_oauth20Google, {
             method: 'POST',
-            headers: { 'Authorization': `Bearer ${token}` }
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ code: code })
         });
     };
 
+    // Authorisation par l'utilisateur sur AE Open Platform
     const authorization = async () => {
-        // chrome.tabs.create({ url: url_aeConsent }, (tab) => {
-        //     console.log('Nouvel onglet ouvert', tab);
-        // });
-        try {
-            let user = await fetch('https://e-tsena-dropshipping.onrender.com/ae_authorization/tokenAE/getExpireTime');
-            if (!user.ok)
-                throw new Error(`HTTP error! status: ${user.status}`);
-
-            user = await user.json();
-            console.log(user);
-            chrome.storage.local.set({ 'access_token_time': user.access_token_time });
-            chrome.storage.local.set({ 'refresh_token_time': user.refresh_token_time });
-        } catch (error) {
-            throw Error("Error Access Token Generation: " + error);
-        }
+        chrome.tabs.create({ url: url_aeConsent }, (tab) => {
+            console.log('Nouvel onglet ouvert', tab);
+        });
     }
 </script>
 
