@@ -16,7 +16,7 @@
             const data = await response.json();
             if (data.token)
                 chrome.storage.local.set({ 'jwt': data.token }, () => {
-                    console.warn("JWT successfully stored");
+                    console.log("JWT successfully stored");
                 });
             else
                 console.error('JWT from server is required');
@@ -67,7 +67,7 @@
     // Authorisation par l'utilisateur sur AE Open Platform
     const authorization = async () => {
         chrome.tabs.create({ url: url_aeConsent }, (tab) => {
-            console.log('Nouvel onglet ouvert', tab);
+            console.log(`Request for consent: ${tab}`);
         });
     }
 </script>

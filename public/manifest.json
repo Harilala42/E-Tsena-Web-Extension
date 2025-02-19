@@ -14,8 +14,7 @@
     },
     "permissions": [
         "identity",
-        "storage",
-        "cookies"
+        "storage"
     ],
     "host_permissions": [
         "https://fr.aliexpress.com/*",
