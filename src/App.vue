@@ -66,8 +66,13 @@
 
     // Authorisation par l'utilisateur sur AE Open Platform
     const authorization = async () => {
-        chrome.tabs.create({ url: url_aeConsent }, (tab) => {
-            console.log(`Request for consent: ${tab}`);
+        chrome.storage.local.get('jwt', (result) => {
+            if (result.jwt)
+                chrome.tabs.create({ url: url_aeConsent + `&state=${result.jwt}` }, (tab) => {
+                    console.log(`Request for consent: ${tab}`);
+                });
+            else
+                alert("Vous avez besoin de vous connecter!");
         });
     }
 </script>

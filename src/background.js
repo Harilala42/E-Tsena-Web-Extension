@@ -15,14 +15,14 @@ const generationAccessToken = async () => {
     try {
         let user = await fetch('https://e-tsena-dropshipping.onrender.com/tokenAE/getExpireTime');
         if (!user.ok)
-            throw new Error(`HTTP error! status: ${user.status}`);
+            console.error(`HTTP error! status: ${user.status}`);
 
         user = await user.json();
         console.log(user);
         chrome.storage.local.set({ 'access_token_time': user.access_token_time });
         chrome.storage.local.set({ 'refresh_token_time': user.refresh_token_time });
-    } catch (error) {
-        throw Error("Error Access Token Generation: " + error);
+    } catch (err) {
+        console.error(`Error Access Token Generation: ${err}`);
     }
 
     chrome.storage.local.get('access_token_time', (result) => {
@@ -39,11 +39,10 @@ const refreshAccessToken = () => {
     chrome.storage.local.get('refresh_token_time', (result) => {
         const expirationTime = result.refresh_token_valid_time * 1000;
         const timeUntilExpiration = expirationTime - Date.now() - 60000;
-            
+
         if (timeUntilExpiration > 0)
             setTimeout(() => {
-                console.log("You need to a new access token now");
-                chrome.storage.local.set({ 'isAccessTokenUpdate': true });
+                console.log("You need to a new access_token now");
             }, timeUntilExpiration);
     });
 }
