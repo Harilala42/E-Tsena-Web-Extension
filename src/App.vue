@@ -15,7 +15,10 @@
 
             const data = await response.json();
             if (data.token) {
-                const token = [data.token, new Date().getTime() + data.expireTime * 1000];
+                const token = {
+                    token: data.token,
+                    expireTime: new Date().getTime() + data.expireTime * 1000
+                };
                 chrome.storage.local.set({ 'jwt': token }, () => {
                     console.log('JWT successfully stored');
                 });
@@ -69,8 +72,8 @@
     const authorization = async () => {
         chrome.storage.local.get(['jwt'], (result) => {
             if (result.jwt) {
-                const [token] = result.jwt;
-                chrome.storage.local.set({ 'isAlreadyAuthorize': false });
+                const { token } = result.jwt;
+                chrome.storage.local.set({ 'isAlreadyAuthorize': 'no' });
                 chrome.tabs.create({ url: url_aeConsent + `&state=${token}` }, (tab) => {
                     console.log(`Request for consent: ${tab}`);
                 });

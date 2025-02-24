@@ -9,85 +9,85 @@ chrome.tabs.onActivated.addListener((activeInfo) => {
     chrome.tabs.get(activeInfo.tabId, (tab) => {
         if (tab.url && tab.url.includes('aliexpress.com')) {
             chrome.action.enable();
-            chrome.storage.local.get('isAlreadyAuthorize', (result) => {
-                if (!result.isAlreadyAuthorize)
-                    generationAccessToken();
-            });
         } else
             chrome.action.disable();
     });
 });
 
 // Vérification si le JWT est toujours valide
-const isJWPExpired = () => {
+const isJWPExpired = async () => {
     chrome.storage.local.get(['jwt'], (result) => {
         if (result.jwt) {
-            const [token, expireTime] = result.jwt;
+            const { expireTime } = result.jwt;
             console.log(`Session will end up: ${new Date(expireTime)}`);
     
             if (Date.now() >= expireTime) {
-                console.log("Token is expired");
+                // Besoin de l'ajout d'un système de refresh_token
+                chrome.storage.local.remove('jwt', () => {
+                    if (chrome.runtime.lastError)
+                        console.error(chrome.runtime.lastError);
+                });
+                console.warn("Token is expired");
             } else
                 console.log("Token is still valid");
         } else
-            console.log("Token didn't find");
+            chrome.storage.local.set({ 'isAlreadyAuthorize': 'denied' });
     });
 }
 
 // Obtention des expireTime de 'access_token' et 'refresh_token'
 const generationAccessToken = async () => {
     chrome.storage.local.get(['jwt'], async (result) => {
-        if (result.jwt) {
-            try {
-                const [token] = result.jwt;
-                let user = await fetch(url_getTime, {
-                    method: 'GET',
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                console.log(`There ${JSON.stringify(user)}!`);
-                if (!user.ok)
-                    console.error(`HTTP error! status: ${user.status}`);
+        try {
+            const { token } = result.jwt;
+            let user = await fetch(url_getTime, {
+                method: 'GET',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (!user.ok)
+                return console.error(`HTTP error! status: ${user.status}`);
 
-                user = await user.json();
-                chrome.storage.local.set({ 'isAlreadyAuthorize': true });
-                chrome.storage.local.set({ 'access_token_time': /*user.access_token_time*/ new Date().getTime() + 60 * 1000 });
-                chrome.storage.local.set({ 'refresh_token_time': /*user.refresh_token_time*/ new Date().getTime() + 120 * 1000 });
-            } catch (err) {
-                console.error(`Error Access Token Generation: ${err}`);
-            }
-        } else
-            console.log("Token didn't find");
+            user = await user.json();
+            chrome.storage.local.set({
+                'isAlreadyAuthorize': 'yes',
+                'access_token_time': user.access_token_time,
+                'refresh_token_time': user.refresh_token_time
+            });
+        } catch (err) {
+            console.error(`Error Access Token Generation: ${err}`);
+        }
     });
 }
 
 // Renouvellement automatique du token après expiration du 'access_token'
-const needRefreshToken = () => {
-    chrome.storage.local.get('access_token_time', (result) => {
+const needRefreshToken = async () => {
+    chrome.storage.local.get(['access_token_time'], (result) => {
         if (Date.now() >= result.access_token_time) {
             chrome.storage.local.get(['jwt'], async (result) => {
-                if (result.jwt) {
-                    const [token] = result.jwt;
-                    try {
-                        let user = await fetch(url_refreshToken, {
-                            method: 'GET',
-                            headers: { 'Authorization': `Bearer ${token}` }
-                        });
-                        if (!user.ok)
-                            console.error(`HTTP error! status: ${user.status}`);
-                    } catch (err) {
-                        console.error(`Error Refresh Token Generation: ${err}`);
-                    }
-                } else
-                    console.log("Token didn't find");
+                const { token } = result.jwt;
+                try {
+                    let user = await fetch(url_refreshToken, {
+                        method: 'GET',
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    if (!user.ok)
+                        return console.error(`HTTP error! status: ${user.status}`);
+                    chrome.storage.local.set({
+                        'isAlreadyAuthorize': 'refresh',
+                        'notificationShown': false
+                    });
+                } catch (err) {
+                    console.error(`Error Refresh Token Generation: ${err}`);
+                }
             });
         }
     });
 }
 
 // Renouvellement manuelle du token après expiration du 'refresh_token_time'
-const needNewAccessToken = () => {
-    chrome.storage.local.get('refresh_token_time', (result) => {
-        if (Date.now() >= result.refresh_token_time) {
+const needNewAccessToken = async () => {
+    chrome.storage.local.get(['refresh_token_time', 'notificationShown'], (result) => {
+        if (Date.now() >= result.refresh_token_time && !result.notificationShown) {
             chrome.notifications.create("tokenExpired", {
                 type: "basic",
                 iconUrl: "./icons/48x48.png",
@@ -96,39 +96,44 @@ const needNewAccessToken = () => {
                 buttons: [{ title: "Autoriser l'App" }]
             });
             
+            chrome.storage.local.set({ notificationShown: true });
             chrome.notifications.onButtonClicked.addListener((notifId, btnIdx) => {
-                if (notifId === "tokenExpired" && btnIdx === 0)
+                if (notifId === "tokenExpired" && btnIdx === 0) {
+                    chrome.storage.local.set({ 'notificationShown': false });
                     needAuthorization();
+                }
             });
         }
     });
 }
 
+// Authorisation par l'utilisateur sur AE Open Platform
 const needAuthorization = () => {
     chrome.storage.local.get(['jwt'], (result) => {
-        if (result.jwt) {
-            const [token] = result.jwt;
-            chrome.storage.local.remove('isAlreadyAuthorize', () => {
-                if (chrome.runtime.lastError)
-                    console.error(chrome.runtime.lastError);
-            });
-            chrome.tabs.create({ url: url_aeConsent + `&state=${token}` }, (tab) => {
-                console.log(`Request for consent: ${tab}`);
-            });
-        } else
-            alert("Vous avez besoin de vous connecter!");
+        const { token } = result.jwt;
+        chrome.storage.local.remove('isAlreadyAuthorize', () => {
+            if (chrome.runtime.lastError)
+                console.error(chrome.runtime.lastError);
+        });
+        chrome.tabs.create({ url: url_aeConsent + `&state=${token}` }, (tab) => {
+            chrome.storage.local.set({ 'isAlreadyAuthorize': 'no' });
+        });
     });
 }
 
-const checkTokens = () => {
-    isJWPExpired();
-    chrome.storage.local.get('isAlreadyAuthorize', (result) => {
-        if (result.isAlreadyAuthorize) {
-            needRefreshToken();
-            needNewAccessToken();
-        }
+const checkTokens = async () => {
+    await isJWPExpired();
+    chrome.storage.local.get('isAlreadyAuthorize', async (result) => {
+        if (result.isAlreadyAuthorize == 'denied')
+            return console.warn("Token didn't find");
+        else if (result.isAlreadyAuthorize == 'no')
+            await generationAccessToken();
+        else if (result.isAlreadyAuthorize == 'yes')
+            await needRefreshToken();
+        else if (result.isAlreadyAuthorize == 'refresh')
+            await needNewAccessToken();
     });
-    setTimeout(checkTokens, 1 * 60 * 1000);
 };
 
 checkTokens();
+setInterval(checkTokens, 1 * 60 * 1000);
