@@ -27,7 +27,7 @@ const isJWPExpired = async () => {
                     if (chrome.runtime.lastError)
                         console.error(chrome.runtime.lastError);
                 });
-                console.warn("Token is expired");
+                console.log("Token is expired");
             } else
                 console.log("Token is still valid");
         } else
@@ -84,7 +84,7 @@ const needRefreshToken = async () => {
     });
 }
 
-// Renouvellement manuelle du token après expiration du 'refresh_token_time'
+// Renouvellement manuelle du token après expiration du 'refresh_token'
 const needNewAccessToken = async () => {
     chrome.storage.local.get(['refresh_token_time', 'notificationShown'], (result) => {
         if (Date.now() >= result.refresh_token_time && !result.notificationShown) {
@@ -107,7 +107,7 @@ const needNewAccessToken = async () => {
     });
 }
 
-// Authorisation par l'utilisateur sur AE Open Platform
+// Autorisation par l'utilisateur sur AE Open Platform
 const needAuthorization = () => {
     chrome.storage.local.get(['jwt'], (result) => {
         const { token } = result.jwt;
@@ -121,6 +121,7 @@ const needAuthorization = () => {
     });
 }
 
+// Cycle de vie d'un token JWT
 const checkTokens = async () => {
     await isJWPExpired();
     chrome.storage.local.get('isAlreadyAuthorize', async (result) => {

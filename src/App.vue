@@ -68,7 +68,7 @@
         });
     };
 
-    // Authorisation par l'utilisateur sur AE Open Platform
+    // Autorisation par l'utilisateur sur AE Open Platform
     const authorization = async () => {
         chrome.storage.local.get(['jwt'], (result) => {
             if (result.jwt) {
