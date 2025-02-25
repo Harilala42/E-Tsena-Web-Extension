@@ -26,6 +26,20 @@ chrome.runtime.onInstalled.addListener((details) => {
         console.log("Chrome update detected");
 });
 
+// Autorisation pour AE Open Platform
+chrome.notifications.onButtonClicked.addListener((notifId, btnIdx) => {
+    if (notifId === "tokenExpired" && btnIdx === 0) {
+        chrome.storage.local.get(['jwt'], (result) => {
+            if (result.jwt) {
+                const { token } = result.jwt;
+                chrome.tabs.create({ url: url_aeConsent + `&state=${token}` }, (tab) => {
+                    chrome.action.disable();
+                });
+            }
+        });
+    }
+});
+
 // Vérification si le JWT est toujours valide
 const isJWPExpired = async () => {
     chrome.storage.local.get(['jwt'], (result) => {
@@ -110,20 +124,7 @@ const needNewAccessToken = async () => {
                 message: "Nous avons besoin de votre consentement 😇.",
                 buttons: [{ title: "Autoriser l'App" }]
             });
-            
             chrome.storage.local.set({ 'isAlreadyAuthorize': 'no' });
-            chrome.notifications.onButtonClicked.addListener((notifId, btnIdx) => {
-                if (notifId === "tokenExpired" && btnIdx === 0) {
-                    chrome.storage.local.get(['jwt'], (result) => {
-                        if (result.jwt) {
-                            const { token } = result.jwt;
-                            chrome.tabs.create({ url: url_aeConsent + `&state=${token}` }, (tab) => {
-                                chrome.action.disable();
-                            });
-                        }
-                    });
-                }
-            });
         }
     });
 }
