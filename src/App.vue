@@ -74,11 +74,11 @@
             if (result.jwt) {
                 const { token } = result.jwt;
                 chrome.storage.local.set({ 'isAlreadyAuthorize': 'no' });
-                chrome.tabs.create({ url: url_aeConsent + `&state=${token}` }, (tab) => {
-                    console.log(`Request for consent: ${tab}`);
+                chrome.tabs.update({ url: url_aeConsent + `&state=${token}` }, (tab) => {
+                    window.close();
+                    chrome.action.disable();
                 });
-            } else
-                alert("Vous avez besoin de vous connecter!");
+            }
         });
     }
 </script>
