@@ -8,10 +8,10 @@ import Payement from './components/web_payement.vue';
 import Settings from './components/profil.vue';
 
 const routes = [
-    { path: '/shopping_cart', name: 'Shopping', component: Shopping },
-    { path: '/order_tracking', name: 'Tracking', component: Tracking },
-    { path: '/web_payement', name: 'Payement', component: Payement },
-    { path: '/profil', name: 'Settings', component: Settings }
+    { path: '/shopping_cart', component: Shopping },
+    { path: '/order_tracking', component: Tracking },
+    { path: '/web_payement', component: Payement },
+    { path: '/profil', component: Settings }
 ];
 
 const router = createRouter({

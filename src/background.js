@@ -4,18 +4,15 @@ const url_aeConsent = 'https://api-sg.aliexpress.com/oauth/authorize?response_ty
 const url_refreshToken = 'https://e-tsena-dropshipping.onrender.com/ae_authorization/tokenAE/refreshTokenAE';
 const url_getTime = 'https://e-tsena-dropshipping.onrender.com/ae_authorization/tokenAE/getExpireTime';
 
-// Autorisation d'excécution uniquement sur Alieppress
 chrome.tabs.onActivated.addListener((activeInfo) => {
     chrome.tabs.get(activeInfo.tabId, (tab) => {
         if (tab.url && tab.url.includes('aliexpress.com'))
-            // Routage avec VueRouter lors de 'no' ou 'denied'
             chrome.action.enable();
         else
             chrome.action.disable();
     });
 });
 
-// Monitoring des softwares exitants
 chrome.runtime.onInstalled.addListener((details) => {
     if (details.reason === "install") {
         console.log("Extension installed");
@@ -26,7 +23,6 @@ chrome.runtime.onInstalled.addListener((details) => {
         console.log("Chrome update detected");
 });
 
-// Autorisation pour AE Open Platform
 chrome.notifications.onButtonClicked.addListener((notifId, btnIdx) => {
     if (notifId === "tokenExpired" && btnIdx === 0) {
         chrome.storage.local.get(['jwt'], (result) => {
