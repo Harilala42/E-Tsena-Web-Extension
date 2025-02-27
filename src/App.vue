@@ -37,9 +37,11 @@
                     token: data.token,
                     expireTime: new Date().getTime() + data.expireTime * 1000
                 };
-                chrome.storage.local.set({ 'jwt': token }, () => {
-                    console.log('JWT successfully stored');
-                });
+                chrome.storage.local.set({
+                        'jwt': token,
+                        'isAlreadyRefreshed': 'no'
+                    }, () => console.log('JWT successfully stored')
+                );
             } else
                 console.error('JWT from server is required');
         } catch (error) {
@@ -117,30 +119,64 @@
 </template>
 
 <style scoped lang="scss">
-    $background-color: #3A003D;
-    $text-color: #FFFFFF;
-    $primary-color: #FF5A19;
-    $secondary-color: #191919;
+    // $background-color: #3A003D;
+    // $text-color: #FFFFFF;
+    // $primary-color: #FF5A19;
+    // $secondary-color: #191919;
 
-    @font-face {
-        font-family: 'MontserratAlternates';
-        src: url('./fonts/MontserratAlternates-Thin.tff') format('truetype');
+    // @font-face {
+    //     font-family: 'MontserratAlternates';
+    //     src: url('./fonts/MontserratAlternates-Thin.tff') format('truetype');
+    // }
+
+    // @font-face {
+    //     font-family: 'Roboto';
+    //     src: url('./fonts/Roboto.tff') format('truetype');
+    // }
+
+    // .container {
+    //     display: flex;
+    //     align-items: center;
+    //     justify-content: center;
+    //     flex-direction: row;
+    //     width: 400px;
+    //     height: 480px;
+
+    //     h1 {
+    //         font-family: 'MontserratAlternates', sans-serif;
+    //     }
+    // }
+    .customBtn {
+        display: inline-block;
+        background: white;
+        color: #444;
+        width: 190px;
+        border-radius: 5px;
+        border: thin solid #888;
+        box-shadow: 1px 1px 1px grey;
+        white-space: nowrap;
     }
-
-    @font-face {
-        font-family: 'Roboto';
-        src: url('./fonts/Roboto.tff') format('truetype');
+    .customBtn:hover {
+        cursor: pointer;
     }
-
-    .container {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 400px;
-        height: 480px;
-
-        h1 {
-            font-family: 'MontserratAlternates', sans-serif;
-        }
+    span.icon {
+        display: inline-block;
+        vertical-align: middle;
+        width: 50px;
+        height: 50px;
+    }
+    span.buttonText {
+        display: inline-block;
+        vertical-align: middle;
+        padding-left: 5px;
+        font-size: 14px;
+        font-weight: bold;
+        font-family: 'Roboto', sans-serif;
+    }
+    #google{
+        background: url('/icons/google_lg.svg') transparent 5px 50% no-repeat;
+    }
+    #aliexpress {
+        background: url('/icons/aliexpress_lg.svg') transparent 5px 50% no-repeat;
     }
 </style>

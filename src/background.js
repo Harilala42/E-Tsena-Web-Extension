@@ -1,12 +1,13 @@
 "use strict";
 
 const url_aeConsent = 'https://api-sg.aliexpress.com/oauth/authorize?response_type=code&force_auth=true&redirect_uri=https://e-tsena-dropshipping.onrender.com/ae_authorization/tokenAE/callback/&client_id=511504';
-const url_refreshToken = 'https://e-tsena-dropshipping.onrender.com/ae_authorization/tokenAE/refreshTokenAE';
+const url_refreshTokenAE = 'https://e-tsena-dropshipping.onrender.com/ae_authorization/tokenAE/refreshTokenAE';
+const url_refreshTokenJWT = 'https://e-tsena-dropshipping.onrender.com/googleOauth20/auth/refresh_token';
 const url_getTime = 'https://e-tsena-dropshipping.onrender.com/ae_authorization/tokenAE/getExpireTime';
 
 chrome.tabs.onActivated.addListener((activeInfo) => {
     chrome.tabs.get(activeInfo.tabId, (tab) => {
-        if (tab.url && tab.url.includes('aliexpress.com'))
+        if (tab.url && tab.url.includes('fr.aliexpress.com'))
             chrome.action.enable();
         else
             chrome.action.disable();
@@ -36,15 +37,52 @@ chrome.notifications.onButtonClicked.addListener((notifId, btnIdx) => {
     }
 });
 
+// Vérification si le JWT a besoin d'un refresh
+const isJWPRefreshed = async () => {
+    chrome.storage.local.get(['jwt'], async (result) => {
+        if (result.jwt) {
+            const { token, expireTime } = result.jwt;
+            console.log(`Session will end up: ${new Date(expireTime)}`);
+    
+            if (Date.now() >= expireTime - 30000) {
+                try {
+                    let user = await fetch(url_refreshTokenJWT, {
+                        method: 'GET',
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    if (!user.ok)
+                        return console.error(`HTTP error! status: ${user.status}`);
+
+                    const data = await user.json();
+                    if (data.new_token) {
+                        const token = {
+                            token: data.new_token,
+                            expireTime: new Date().getTime() + data.expireTime * 1000
+                        };
+                        chrome.storage.local.set({
+                                'jwt': token,
+                                'isAlreadyRefreshed': 'yes'
+                            }, () => console.log('JWT successfully refreshed')
+                        );
+                    } else
+                        console.error('JWT from server is required');
+                } catch (err) {
+                    console.error(`Error Refresh Token JWT Generation: ${err}`);
+                }
+            } else
+                console.log("Token is still valid");
+        }
+    });
+}
+
 // Vérification si le JWT est toujours valide
 const isJWPExpired = async () => {
     chrome.storage.local.get(['jwt'], (result) => {
         if (result.jwt) {
             const { expireTime } = result.jwt;
-            console.log(`Session will end up: ${new Date(expireTime)}`);
+            console.log(`New Session will end up: ${new Date(expireTime)}`);
     
             if (Date.now() >= expireTime) {
-                // Besoin de l'ajout d'un système de refresh_token
                 chrome.storage.local.remove('jwt', () => {
                     if (chrome.runtime.lastError)
                         console.error(chrome.runtime.lastError);
@@ -93,7 +131,7 @@ const needRefreshToken = async () => {
                 if (result.jwt) {
                     const { token } = result.jwt;
                     try {
-                        let user = await fetch(url_refreshToken, {
+                        let user = await fetch(url_refreshTokenAE, {
                             method: 'GET',
                             headers: { 'Authorization': `Bearer ${token}` }
                         });
@@ -101,7 +139,7 @@ const needRefreshToken = async () => {
                             return console.error(`HTTP error! status: ${user.status}`);
                         chrome.storage.local.set({ 'isAlreadyAuthorize': 'refresh' });
                     } catch (err) {
-                        console.error(`Error Refresh Token Generation: ${err}`);
+                        console.error(`Error Refresh Token AE Generation: ${err}`);
                     }
                 }
             });
@@ -126,17 +164,28 @@ const needNewAccessToken = async () => {
 }
 
 // Cycle de vie d'un token JWT
-const checkTokens = async () => {
-    await isJWPExpired();
-    chrome.storage.local.get('isAlreadyAuthorize', async (result) => {
-        if (result.isAlreadyAuthorize === 'denied')
-            return console.warn("Token didn't find");
-        else if (result.isAlreadyAuthorize === 'no')
-            await generationAccessToken();
-        else if (result.isAlreadyAuthorize === 'yes')
-            await needRefreshToken();
-        else if (result.isAlreadyAuthorize === 'refresh')
-            await needNewAccessToken();
+const checkTokens = () => {
+    chrome.storage.local.get(['isAlreadyRefreshed', 'isAlreadyAuthorize'], async (result) => {
+        if (result.isAlreadyRefreshed === 'no')
+            await isJWPRefreshed();
+        else if (result.isAlreadyRefreshed === 'yes')
+            await isJWPExpired();
+
+        switch (result.isAlreadyAuthorize) {
+            case 'denied':
+                return console.warn("Token didn't find");
+            case 'no':
+                await generationAccessToken();
+            break;
+            case 'yes':
+                await needRefreshToken();
+            break;
+            case 'refresh':
+                await needNewAccessToken();
+            break;
+            default:
+                console.error('Invalid value');
+        }
     });
 };
 

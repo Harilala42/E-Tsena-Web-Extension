@@ -1,4 +1,4 @@
-"use strcit";
+"use strict";
 
 import { createApp } from 'vue';
 import './style.scss';
