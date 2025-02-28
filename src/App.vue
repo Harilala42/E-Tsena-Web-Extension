@@ -39,7 +39,8 @@
                 };
                 chrome.storage.local.set({
                         'jwt': token,
-                        'isAlreadyRefreshed': 'no'
+                        'isAlreadyRefreshed': 'no',
+                        'isAlreadyAuthorize': 'no'
                     }, () => console.log('JWT successfully stored')
                 );
             } else
@@ -93,7 +94,6 @@
         chrome.storage.local.get(['jwt'], (result) => {
             if (result.jwt) {
                 const { token } = result.jwt;
-                chrome.storage.local.set({ 'isAlreadyAuthorize': 'no' });
                 chrome.tabs.update({ url: url_aeConsent + `&state=${token}` }, (tab) => {
                     window.close();
                     chrome.action.disable();

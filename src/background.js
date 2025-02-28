@@ -44,7 +44,8 @@ const isJWPRefreshed = async () => {
             const { token, expireTime } = result.jwt;
             console.log(`Session will end up: ${new Date(expireTime)}`);
     
-            if (Date.now() >= expireTime - 30000) {
+            const deadline = 24 * 60 * 60 * 1000; // Delai de 24H avamt expiration
+            if (Date.now() >= expireTime - deadline) {
                 try {
                     let user = await fetch(url_refreshTokenJWT, {
                         method: 'GET',
@@ -105,17 +106,17 @@ const generationAccessToken = async () => {
                     method: 'GET',
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
-                if (!user.ok)
+                if (!user.ok && user.status === 401)
+                    return console.warn('User have to authorize the app');
+                else if (!user.ok)
                     return console.error(`HTTP error! status: ${user.status}`);
 
                 user = await user.json();
-                if (user.access_token_time > 0) {
-                    chrome.storage.local.set({
-                        'isAlreadyAuthorize': 'yes',
-                        'access_token_time': user.access_token_time,
-                        'refresh_token_time': user.refresh_token_time
-                    });
-                }
+                chrome.storage.local.set({
+                    'isAlreadyAuthorize': 'yes',
+                    'access_token_time': user.access_token_time,
+                    'refresh_token_time': user.refresh_token_time
+                });
             } catch (err) {
                 console.error(`Error Access Token Generation: ${err}`);
             }
