@@ -3,17 +3,17 @@
     import { useRouter } from 'vue-router';
 
     const router = useRouter();
-    const showAuthentication = ref(false);
+    const showAuthentication = ref(true);
     const url_oauth20Google = 'https://e-tsena-dropshipping.onrender.com/googleOauth20/auth/google';
     const url_aeConsent = 'https://api-sg.aliexpress.com/oauth/authorize?response_type=code&force_auth=true&redirect_uri=https://e-tsena-dropshipping.onrender.com/ae_authorization/tokenAE/callback/&client_id=511504';
 
     onMounted(() => {
         chrome.storage.local.get(['isAlreadyAuthorize'], (result) => {
-            showAuthentication.value = (result.isAlreadyAuthorize == 'no' || result.isAlreadyAuthorize == 'denied')? true : false;
+            showAuthentication.value = (result.isAlreadyAuthorize === 'no' || result.isAlreadyAuthorize === 'denied')? true : false;
         });
         chrome.storage.onChanged.addListener((details) => {
             if (details.isAlreadyAuthorize)
-                showAuthentication.value = (details.isAlreadyAuthorize == 'no' || details.isAlreadyAuthorize == 'denied')? true : false;
+                showAuthentication.value = (details.isAlreadyAuthorize === 'no' || details.isAlreadyAuthorize === 'denied')? true : false;
         });
     });
 

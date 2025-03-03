@@ -44,11 +44,11 @@ const isJWPRefreshed = async () => {
             const { token, expireTime } = result.jwt;
             console.log(`Session will end up: ${new Date(expireTime)}`);
     
-            const deadline = 24 * 60 * 60 * 1000; // Delai de 24H avamt expiration
+            const deadline = 24 * 60 * 60 * 1000; // Delai de 24H avant expiration
             if (Date.now() >= expireTime - deadline) {
                 try {
                     let user = await fetch(url_refreshTokenJWT, {
-                        method: 'GET',
+                        method: 'POST',
                         headers: { 'Authorization': `Bearer ${token}` }
                     });
                     if (!user.ok)
@@ -133,7 +133,7 @@ const needRefreshToken = async () => {
                     const { token } = result.jwt;
                     try {
                         let user = await fetch(url_refreshTokenAE, {
-                            method: 'GET',
+                            method: 'POST',
                             headers: { 'Authorization': `Bearer ${token}` }
                         });
                         if (!user.ok)
