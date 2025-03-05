@@ -3,17 +3,20 @@
     padding: 0;
 }
 
+@font-face {
+    font-family: 'MontserratAlternates';
+    src: url('/fonts/MontserratAlternates-Thin.ttf') format('truetype');
+}
+
+@font-face {
+    font-family: 'Roboto';
+    src: url('/fonts/Roboto.ttf') format('truetype');
+}
+
 $background-color: #3A003D;
 $text-color: #FFFFFF;
 $primary-color: #FF5A19;
 $secondary-color: #191919;
 
-@font-face {
-    font-family: 'MontserratAlternates';
-    src: url('../fonts/MontserratAlternates-Thin.tff') format('truetype');
-}
-
-@font-face {
-    font-family: 'Roboto';
-    src: url('../fonts/Roboto.tff') format('truetype');
-}
+$font-MontserratAlternates: 'MontserratAlternates', sans-serif;
+$font-Roboto: 'Roboto', sans-serif;

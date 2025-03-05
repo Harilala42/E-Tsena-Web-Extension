@@ -93,48 +93,56 @@
         <h1>Log in</h1>
         <div class="customBtn" @click="authentication">
             <span class="icon" id="google"></span>
-            <span class="buttonText">Sign in with Google</span>
+            <span class="btnText">Sign in with Google</span>
         </div>
         <div class="customBtn" @click="authorization">
             <span class="icon" id="aliexpress"></span>
-            <span class="buttonText">Autoriser l'App</span>
+            <span class="btnText">Autoriser l'App</span>
         </div>
         <p>Aliexpress à portée de clic</p>
     </div>
 </template>
 
 <style scoped lang="scss">
-    .customBtn {
-        display: inline-block;
-        background: white;
-        color: #444;
-        width: 190px;
-        border-radius: 5px;
-        border: thin solid #888;
-        box-shadow: 1px 1px 1px grey;
-        white-space: nowrap;
-    }
-    .customBtn:hover {
-        cursor: pointer;
-    }
-    span.icon {
-        display: inline-block;
-        vertical-align: middle;
-        width: 50px;
-        height: 50px;
-    }
-    span.buttonText {
-        display: inline-block;
-        vertical-align: middle;
-        padding-left: 5px;
-        font-size: 14px;
-        font-weight: bold;
-        font-family: 'Roboto', sans-serif;
-    }
-    #google{
-        background: url('/icons/google_lg.svg') transparent 5px 50% no-repeat;
-    }
-    #aliexpress {
-        background: url('/icons/aliexpress_lg.svg') transparent 5px 50% no-repeat;
+    @use 'style';
+
+    .container {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        width: 200px;
+
+        .customBtn {
+            display: inline-block;
+            background-color: white;
+            color: #444;
+            width: 190px;
+            border-radius: 5px;
+            border: thin solid #888;
+            box-shadow: 1px 1px 1px grey;
+            white-space: nowrap;
+
+            .icon {
+                display: inline-block;
+                vertical-align: middle;
+                width: 50px;
+                height: 50px;
+            }
+
+            .btnText {
+                display: inline-block;
+                vertical-align: middle;
+                padding-left: 5px;
+                font-size: 14px;
+                font-weight: bold;
+                font-family: style.$font-Roboto;
+            }
+
+            #google { background: url('/icons/google_lg.svg') transparent 5px 50% no-repeat; }
+            #aliexpress { background: url('/icons/aliexpress_lg.svg') transparent 5px 50% no-repeat; }
+
+            &:hover { cursor: pointer; }
+        }
     }
 </style>
