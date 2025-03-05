@@ -2,3 +2,18 @@
     margin: 0;
     padding: 0;
 }
+
+$background-color: #3A003D;
+$text-color: #FFFFFF;
+$primary-color: #FF5A19;
+$secondary-color: #191919;
+
+@font-face {
+    font-family: 'MontserratAlternates';
+    src: url('../fonts/MontserratAlternates-Thin.tff') format('truetype');
+}
+
+@font-face {
+    font-family: 'Roboto';
+    src: url('../fonts/Roboto.tff') format('truetype');
+}

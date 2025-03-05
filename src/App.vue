@@ -7,21 +7,6 @@
     const url_oauth20Google = 'https://e-tsena-dropshipping.onrender.com/googleOauth20/auth/google';
     const url_aeConsent = 'https://api-sg.aliexpress.com/oauth/authorize?response_type=code&force_auth=true&redirect_uri=https://e-tsena-dropshipping.onrender.com/ae_authorization/tokenAE/callback/&client_id=511504';
 
-    // onMounted(() => {
-    //     chrome.storage.local.get(['isAlreadyAuthorize'], (result) => {
-    //         showAuthentication.value = (result.isAlreadyAuthorize === 'no' || result.isAlreadyAuthorize === 'denied')? true : false;
-    //     });
-    //     chrome.storage.onChanged.addListener((details) => {
-    //         if (details.isAlreadyAuthorize)
-    //             showAuthentication.value = (details.isAlreadyAuthorize === 'no' || details.isAlreadyAuthorize === 'denied')? true : false;
-    //     });
-    // });
-
-    // watch(showAuthentication, (newValue, oldValue) => {
-    //     if (!newValue)
-    //         router.push('/shopping_cart');
-    // });
-
     // Début de l'authentification Oauth2.0 Google
     const authentication = async () => {
         try {
@@ -119,33 +104,6 @@
 </template>
 
 <style scoped lang="scss">
-    // $background-color: #3A003D;
-    // $text-color: #FFFFFF;
-    // $primary-color: #FF5A19;
-    // $secondary-color: #191919;
-
-    // @font-face {
-    //     font-family: 'MontserratAlternates';
-    //     src: url('./fonts/MontserratAlternates-Thin.tff') format('truetype');
-    // }
-
-    // @font-face {
-    //     font-family: 'Roboto';
-    //     src: url('./fonts/Roboto.tff') format('truetype');
-    // }
-
-    // .container {
-    //     display: flex;
-    //     align-items: center;
-    //     justify-content: center;
-    //     flex-direction: row;
-    //     width: 400px;
-    //     height: 480px;
-
-    //     h1 {
-    //         font-family: 'MontserratAlternates', sans-serif;
-    //     }
-    // }
     .customBtn {
         display: inline-block;
         background: white;
