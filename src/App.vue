@@ -90,16 +90,19 @@
 
 <template>
     <div v-if="showAuthentication" class="container">
-        <h1>Log in</h1>
+        <div class="login">
+            <img src="/icons/login.svg" alt="login">
+            <h1>login</h1>
+        </div>
         <div class="customBtn" @click="authentication">
             <span class="icon" id="google"></span>
-            <span class="btnText">Sign in with Google</span>
+            <span class="btnText">Se connecter avec Google</span>
         </div>
         <div class="customBtn" @click="authorization">
             <span class="icon" id="aliexpress"></span>
-            <span class="btnText">Autoriser l'App</span>
+            <span class="btnText">Autoriser l'extension web</span>
         </div>
-        <p>Aliexpress à portée de clic</p>
+        <p>Aliexpress à portée de <span class="cta">clic</span>!</p>
     </div>
 </template>
 
@@ -111,28 +114,45 @@
         flex-direction: column;
         justify-content: center;
         align-items: center;
-        width: 200px;
+        background-color: style.$background-color;
+        border-radius: 15px;
+        padding: 30px 0;
+        width: 400px;
+        height: 480px;
+
+        .login {
+            display: flex;
+            flex-direction: row;
+            margin-bottom: 21px;
+
+            h1 {
+                font-weight: 800;
+                font-family: style.$font-MontserratAlternates;
+                color: style.$text-color;
+            }
+        }
 
         .customBtn {
-            display: inline-block;
-            background-color: white;
-            color: #444;
-            width: 190px;
-            border-radius: 5px;
-            border: thin solid #888;
+            display: flex;
+            flex-direction: row;
+            justify-content: flex-start;
+            align-items: center;
+            background-color: style.$secondary-color;
+            color: style.$text-color;
+            width: 300px;
+            height: 50px;
+            margin-bottom: 21px;
+            padding-left: 20px;
+            border-radius: 50px;
+            border: thin solid style.$text-color;
             box-shadow: 1px 1px 1px grey;
-            white-space: nowrap;
 
             .icon {
-                display: inline-block;
-                vertical-align: middle;
                 width: 50px;
                 height: 50px;
             }
 
             .btnText {
-                display: inline-block;
-                vertical-align: middle;
                 padding-left: 5px;
                 font-size: 14px;
                 font-weight: bold;
@@ -143,6 +163,14 @@
             #aliexpress { background: url('/icons/aliexpress_lg.svg') transparent 5px 50% no-repeat; }
 
             &:hover { cursor: pointer; }
+        }
+
+        p {
+            font-weight: bold;
+            font-family: style.$font-MontserratAlternates;
+            color: style.$text-color;
+
+            .cta { color: style.$primary-color; }
         }
     }
 </style>
