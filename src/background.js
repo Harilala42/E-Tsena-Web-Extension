@@ -1,10 +1,5 @@
 "use strict";
 
-const url_aeConsent = 'https://api-sg.aliexpress.com/oauth/authorize?response_type=code&force_auth=true&redirect_uri=https://e-tsena-dropshipping.onrender.com/ae_authorization/tokenAE/callback/&client_id=511504';
-const url_refreshTokenAE = 'https://e-tsena-dropshipping.onrender.com/ae_authorization/tokenAE/refreshTokenAE';
-const url_refreshTokenJWT = 'https://e-tsena-dropshipping.onrender.com/googleOauth20/auth/refresh_token';
-const url_getTime = 'https://e-tsena-dropshipping.onrender.com/ae_authorization/tokenAE/getExpireTime';
-
 chrome.tabs.onActivated.addListener((activeInfo) => {
     chrome.tabs.get(activeInfo.tabId, (tab) => {
         if (tab.url && tab.url.includes('fr.aliexpress.com'))
@@ -29,7 +24,7 @@ chrome.notifications.onButtonClicked.addListener((notifId, btnIdx) => {
         chrome.storage.local.get(['jwt'], (result) => {
             if (result.jwt) {
                 const { token } = result.jwt;
-                chrome.tabs.create({ url: url_aeConsent + `&state=${token}` }, (tab) => {
+                chrome.tabs.create({ url: import.meta.env.VITE_URL_AE_AGREEMENT + `&state=${token}` }, (tab) => {
                     chrome.action.disable();
                 });
             }
@@ -47,7 +42,7 @@ const isJWPRefreshed = async () => {
             const deadline = 24 * 60 * 60 * 1000; // Delai de 24H avant expiration
             if (Date.now() >= expireTime - deadline) {
                 try {
-                    let user = await fetch(url_refreshTokenJWT, {
+                    let user = await fetch(import.meta.env.VITE_URL_REFRESFTOKEN_JWT, {
                         method: 'POST',
                         headers: { 'Authorization': `Bearer ${token}` }
                     });
@@ -102,7 +97,7 @@ const generationAccessToken = async () => {
         if (result.jwt) {
             try {
                 const { token } = result.jwt;
-                let user = await fetch(url_getTime, {
+                let user = await fetch(import.meta.env.VITE_URL_GETEXPIRETIME, {
                     method: 'GET',
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
@@ -132,7 +127,7 @@ const needRefreshToken = async () => {
                 if (result.jwt) {
                     const { token } = result.jwt;
                     try {
-                        let user = await fetch(url_refreshTokenAE, {
+                        let user = await fetch(import.meta.env.VITE_URL_REFRESFTOKEN_AE, {
                             method: 'POST',
                             headers: { 'Authorization': `Bearer ${token}` }
                         });

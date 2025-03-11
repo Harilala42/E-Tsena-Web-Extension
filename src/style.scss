@@ -3,9 +3,18 @@
     padding: 0;
 }
 
+html, body {
+    overflow: auto
+}
+
 @font-face {
-    font-family: 'MontserratAlternates';
+    font-family: 'MontserratAlternates-Thin';
     src: url('/fonts/MontserratAlternates-Thin.ttf') format('truetype');
+}
+
+@font-face {
+    font-family: 'MontserratAlternates-Bold';
+    src: url('/fonts/MontserratAlternates-Bold.ttf') format('truetype');
 }
 
 @font-face {
@@ -18,5 +27,6 @@ $text-color: #FFFFFF;
 $primary-color: #FF5A19;
 $secondary-color: #191919;
 
-$font-MontserratAlternates: 'MontserratAlternates', sans-serif;
+$font-MontserratAlternates-Thin: 'MontserratAlternates-Thin', sans-serif;
+$font-MontserratAlternates-Bold: 'MontserratAlternates-Bold', sans-serif;
 $font-Roboto: 'Roboto', sans-serif;

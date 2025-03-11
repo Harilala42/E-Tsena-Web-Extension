@@ -4,8 +4,6 @@
 
     const router = useRouter();
     const showAuthentication = ref(true);
-    const url_oauth20Google = 'https://e-tsena-dropshipping.onrender.com/googleOauth20/auth/google';
-    const url_aeConsent = 'https://api-sg.aliexpress.com/oauth/authorize?response_type=code&force_auth=true&redirect_uri=https://e-tsena-dropshipping.onrender.com/ae_authorization/tokenAE/callback/&client_id=511504';
 
     // Début de l'authentification Oauth2.0 Google
     const authentication = async () => {
@@ -67,7 +65,7 @@
 
     // Envoie du code vers le server
     const sendCodeToServer = (code) => {
-        return fetch(url_oauth20Google, {
+        return fetch(import.meta.env.VITE_URL_OAUTH20_GOOGLE, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ code: code })
@@ -79,7 +77,7 @@
         chrome.storage.local.get(['jwt'], (result) => {
             if (result.jwt) {
                 const { token } = result.jwt;
-                chrome.tabs.update({ url: url_aeConsent + `&state=${token}` }, (tab) => {
+                chrome.tabs.update({ url: import.meta.env.VITE_URL_AE_AGREEMENT + `&state=${token}` }, (tab) => {
                     window.close();
                     chrome.action.disable();
                 });
@@ -90,6 +88,7 @@
 
 <template>
     <div v-if="showAuthentication" class="container">
+        <img src="/icons/e-tsena_lg.png" alt="brand" id="brand">
         <div class="login">
             <img src="/icons/login.svg" alt="login">
             <h1>login</h1>
@@ -102,7 +101,7 @@
             <span class="icon" id="aliexpress"></span>
             <span class="btnText">Autoriser l'extension web</span>
         </div>
-        <p>Aliexpress à portée de <span class="cta">clic</span>!</p>
+        <p id="slogan">Aliexpress à portée de <span class="cta">clic</span>!</p>
     </div>
 </template>
 
@@ -115,19 +114,29 @@
         justify-content: center;
         align-items: center;
         background-color: style.$background-color;
-        border-radius: 15px;
         padding: 30px 0;
         width: 400px;
         height: 480px;
+
+        #brand {
+            width: 250px;
+            height: 150px;
+        }
 
         .login {
             display: flex;
             flex-direction: row;
             margin-bottom: 21px;
 
+            img {
+                width: 35px;
+                height: 42px;
+            }
+
             h1 {
                 font-weight: 800;
-                font-family: style.$font-MontserratAlternates;
+                font-size: 35px;
+                font-family: style.$font-MontserratAlternates-Thin;
                 color: style.$text-color;
             }
         }
@@ -146,6 +155,7 @@
             border-radius: 50px;
             border: thin solid style.$text-color;
             box-shadow: 1px 1px 1px grey;
+            transition: all 0.8ms ease-out;
 
             .icon {
                 width: 50px;
@@ -162,12 +172,16 @@
             #google { background: url('/icons/google_lg.svg') transparent 5px 50% no-repeat; }
             #aliexpress { background: url('/icons/aliexpress_lg.svg') transparent 5px 50% no-repeat; }
 
-            &:hover { cursor: pointer; }
+            &:hover {
+                cursor: pointer;
+                transform: scale(1.05);
+            }
         }
 
-        p {
-            font-weight: bold;
-            font-family: style.$font-MontserratAlternates;
+        #slogan {
+            font-weight: 1000;
+            font-size: 20px;
+            font-family: style.$font-MontserratAlternates-Bold;
             color: style.$text-color;
 
             .cta { color: style.$primary-color; }
