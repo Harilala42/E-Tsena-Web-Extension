@@ -115,8 +115,8 @@
         align-items: center;
         background-color: style.$background-color;
         padding: 30px 0;
-        width: 400px;
-        height: 480px;
+        min-width: 400px;
+        min-height: 480px;
 
         #brand {
             width: 250px;
