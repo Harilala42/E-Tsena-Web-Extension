@@ -3,11 +3,19 @@
     import { useRouter } from 'vue-router';
 
     const router = useRouter();
-    const showAuthentication = ref(true);
+    var isLoadingAuth = ref(false);
+
+    onMounted(() => {
+        chrome.storage.local.get(['isAlreadyAuthorize'], (result) => {
+            if (result.isAlreadyAuthorize === 'yes' || result.isAlreadyAuthorize === 'refresh')
+                router.push('/shopping_cart');
+        });
+    });
 
     // Début de l'authentification Oauth2.0 Google
     const authentication = async () => {
         try {
+            isLoadingAuth.value = true;
             const code = await getAuthorizationCode();
 
             const response = await sendCodeToServer(code);
@@ -24,7 +32,10 @@
                         'jwt': token,
                         'isAlreadyRefreshed': 'no',
                         'isAlreadyAuthorize': 'no'
-                    }, () => console.log('JWT successfully stored')
+                    }, () => {
+                        isLoadingAuth.value = false;
+                        console.log('JWT successfully stored');
+                    }
                 );
             } else
                 console.error('JWT from server is required');
@@ -36,13 +47,13 @@
     // Obtention d'un code de Google Server
     const getAuthorizationCode = () => {
         return new Promise((resolve, reject) => {
-            var manifest = chrome.runtime.getManifest();
+            let manifest = chrome.runtime.getManifest();
 
-            var client_id = encodeURIComponent(manifest.oauth2.client_id);
-            var scopes = encodeURIComponent(manifest.oauth2.scopes.join(' '));
-            var redirect_uri = chrome.identity.getRedirectURL();
+            let client_id = encodeURIComponent(manifest.oauth2.client_id);
+            let scopes = encodeURIComponent(manifest.oauth2.scopes.join(' '));
+            let redirect_uri = chrome.identity.getRedirectURL();
 
-            var url = 'https://accounts.google.com/o/oauth2/auth' +
+            const url = 'https://accounts.google.com/o/oauth2/auth' +
                 '?client_id=' + client_id +
                 '&response_type=code' +
                 '&access_type=offline' +
@@ -87,7 +98,7 @@
 </script>
 
 <template>
-    <div v-if="showAuthentication" class="container">
+    <div class="container">
         <img src="/icons/e-tsena_lg.png" alt="brand" id="brand">
         <div class="login">
             <img src="/icons/login.svg" alt="login">
@@ -95,9 +106,12 @@
         </div>
         <div class="customBtn" @click="authentication">
             <span class="icon" id="google"></span>
-            <span class="btnText">Se connecter avec Google</span>
+            <span class="btnText">
+                {{ isLoadingAuth ? 'Connexion en cours...' : 'Se connecter avec Google' }}
+            </span>
+            <span v-if="isLoadingAuth" class="spinner"></span>
         </div>
-        <div class="customBtn" @click="authorization">
+        <div :class="{ 'disabled-customBtn': isLoadingAuth, 'customBtn': !isLoadingAuth }" @click="authorization">
             <span class="icon" id="aliexpress"></span>
             <span class="btnText">Autoriser l'extension web</span>
         </div>
@@ -144,7 +158,6 @@
         .customBtn {
             display: flex;
             flex-direction: row;
-            justify-content: flex-start;
             align-items: center;
             background-color: style.$secondary-color;
             color: style.$text-color;
@@ -155,7 +168,7 @@
             border-radius: 50px;
             border: thin solid style.$text-color;
             box-shadow: 1px 1px 1px grey;
-            transition: all 0.8ms ease-out;
+            transition: all 1.5ms ease-out;
 
             .icon {
                 width: 50px;
@@ -169,6 +182,16 @@
                 font-family: style.$font-Roboto;
             }
 
+            .spinner {
+                border: 2px solid #f3f3f3;
+                border-top: 2px solid #3498db;
+                border-radius: 50%;
+                width: 16px;
+                height: 16px;
+                animation: spin 1s linear infinite;
+                margin-left: 10px;
+            }
+
             #google { background: url('/icons/google_lg.svg') transparent 5px 50% no-repeat; }
             #aliexpress { background: url('/icons/aliexpress_lg.svg') transparent 5px 50% no-repeat; }
 
@@ -176,6 +199,12 @@
                 cursor: pointer;
                 transform: scale(1.05);
             }
+        }
+
+        .disabled-customBtn {
+            pointer-events: none;
+            opacity: 0.5;
+            cursor: not-allowed;
         }
 
         #slogan {
@@ -186,5 +215,10 @@
 
             .cta { color: style.$primary-color; }
         }
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
     }
 </style>
