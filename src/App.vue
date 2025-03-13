@@ -1,21 +1,41 @@
 <script setup>
-    import { ref, onMounted, watch } from 'vue';
+    import { ref, onMounted } from 'vue';
     import { useRouter } from 'vue-router';
 
     const router = useRouter();
-    var isLoadingAuth = ref(false);
+    var showAuthentication = ref(true);
+    var statusAuth = ref('');
 
     onMounted(() => {
         chrome.storage.local.get(['isAlreadyAuthorize'], (result) => {
-            if (result.isAlreadyAuthorize === 'yes' || result.isAlreadyAuthorize === 'refresh')
+            checkStatusAuth(result.isAlreadyAuthorize);
+            if (!showAuthentication.value)
                 router.push('/shopping_cart');
         });
+        chrome.storage.onChanged.addListener((details) => {
+            if (details.isAlreadyAuthorize) {
+                checkStatusAuth(details.isAlreadyAuthorize.newValue);     
+                if (!showAuthentication.value)
+                    router.push('/shopping_cart');
+            }
+        });
     });
+
+    function checkStatusAuth (status) {
+        if (status === 'denied') {
+            statusAuth.value = 'identity';
+            showAuthentication.value = true;
+        } else if (status === 'no') {
+            statusAuth.value = 'authorization';
+            showAuthentication.value = true;
+        } else
+            showAuthentication.value = false;
+    }
 
     // Début de l'authentification Oauth2.0 Google
     const authentication = async () => {
         try {
-            isLoadingAuth.value = true;
+            statusAuth.value = 'load';
             const code = await getAuthorizationCode();
 
             const response = await sendCodeToServer(code);
@@ -32,10 +52,7 @@
                         'jwt': token,
                         'isAlreadyRefreshed': 'no',
                         'isAlreadyAuthorize': 'no'
-                    }, () => {
-                        isLoadingAuth.value = false;
-                        console.log('JWT successfully stored');
-                    }
+                    }, () => console.log('JWT successfully stored')
                 );
             } else
                 console.error('JWT from server is required');
@@ -88,35 +105,36 @@
         chrome.storage.local.get(['jwt'], (result) => {
             if (result.jwt) {
                 const { token } = result.jwt;
-                chrome.tabs.update({ url: import.meta.env.VITE_URL_AE_AGREEMENT + `&state=${token}` }, (tab) => {
-                    window.close();
-                    chrome.action.disable();
-                });
+                chrome.tabs.update({
+                        url: import.meta.env.VITE_URL_AE_AGREEMENT + `&state=${token}`
+                    }, (tab) => window.close()
+                );
             }
         });
     }
 </script>
 
 <template>
-    <div class="container">
-        <img src="/icons/e-tsena_lg.png" alt="brand" id="brand">
+    <div v-if="showAuthentication" class="container">
+        <img src="/icons/e-tsena_lg.png" alt="brand" class="brand">
         <div class="login">
             <img src="/icons/login.svg" alt="login">
             <h1>login</h1>
         </div>
-        <div class="customBtn" @click="authentication">
+        <div :class="{ 'disabled-customBtn': statusAuth != 'identity', 'customBtn': statusAuth == 'identity' }" @click="authentication">
             <span class="icon" id="google"></span>
             <span class="btnText">
-                {{ isLoadingAuth ? 'Connexion en cours...' : 'Se connecter avec Google' }}
+                {{ statusAuth == 'load' ? 'Connexion en cours...' : 'Se connecter avec Google' }}
             </span>
-            <span v-if="isLoadingAuth" class="spinner"></span>
+            <span v-if="statusAuth == 'load'" class="spinner"></span>
         </div>
-        <div :class="{ 'disabled-customBtn': isLoadingAuth, 'customBtn': !isLoadingAuth }" @click="authorization">
+        <div :class="{ 'disabled-customBtn': statusAuth != 'authorization', 'customBtn': statusAuth == 'authorization' }" @click="authorization">
             <span class="icon" id="aliexpress"></span>
             <span class="btnText">Autoriser l'extension web</span>
         </div>
-        <p id="slogan">Aliexpress à portée de <span class="cta">clic</span>!</p>
+        <p class="slogan">Aliexpress à portée de <span class="cta">clic</span>!</p>
     </div>
+    <router-view v-else/>
 </template>
 
 <style scoped lang="scss">
@@ -132,7 +150,7 @@
         min-width: 400px;
         min-height: 480px;
 
-        #brand {
+        .brand {
             width: 250px;
             height: 150px;
         }
@@ -155,7 +173,7 @@
             }
         }
 
-        .customBtn {
+        @mixin shared-customBtn-style {
             display: flex;
             flex-direction: row;
             align-items: center;
@@ -194,7 +212,12 @@
 
             #google { background: url('/icons/google_lg.svg') transparent 5px 50% no-repeat; }
             #aliexpress { background: url('/icons/aliexpress_lg.svg') transparent 5px 50% no-repeat; }
+        }
 
+
+        .customBtn {
+            @include shared-customBtn-style;
+            
             &:hover {
                 cursor: pointer;
                 transform: scale(1.05);
@@ -202,12 +225,13 @@
         }
 
         .disabled-customBtn {
+            @include shared-customBtn-style;
             pointer-events: none;
             opacity: 0.5;
             cursor: not-allowed;
         }
 
-        #slogan {
+        .slogan {
             font-weight: 1000;
             font-size: 20px;
             font-family: style.$font-MontserratAlternates-Bold;

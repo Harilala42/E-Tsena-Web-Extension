@@ -2,11 +2,20 @@
 
 chrome.tabs.onActivated.addListener((activeInfo) => {
     chrome.tabs.get(activeInfo.tabId, (tab) => {
-        if (tab.url && tab.url.includes('fr.aliexpress.com'))
+        if (tab.url && tab.url.startWith('https://fr.aliexpress.com/')) {
+            checkTokens();
             chrome.action.enable();
-        else
+        } else
             chrome.action.disable();
     });
+});
+
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+    if (tab.url && tab.url.startsWith('https://fr.aliexpress.com/')) {
+        checkTokens();
+        chrome.action.enable();
+    } else
+        chrome.action.disable();
 });
 
 chrome.runtime.onInstalled.addListener((details) => {
@@ -24,9 +33,7 @@ chrome.notifications.onButtonClicked.addListener((notifId, btnIdx) => {
         chrome.storage.local.get(['jwt'], (result) => {
             if (result.jwt) {
                 const { token } = result.jwt;
-                chrome.tabs.create({ url: import.meta.env.VITE_URL_AE_AGREEMENT + `&state=${token}` }, (tab) => {
-                    chrome.action.disable();
-                });
+                chrome.tabs.create({ url: import.meta.env.VITE_URL_AE_AGREEMENT + `&state=${token}` });
             }
         });
     }
