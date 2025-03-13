@@ -2,7 +2,7 @@
 
 chrome.tabs.onActivated.addListener((activeInfo) => {
     chrome.tabs.get(activeInfo.tabId, (tab) => {
-        if (tab.url && tab.url.startWith('https://fr.aliexpress.com/')) {
+        if (tab.url && tab.url.includes('https://fr.aliexpress.com/')) {
             checkTokens();
             chrome.action.enable();
         } else
@@ -11,7 +11,7 @@ chrome.tabs.onActivated.addListener((activeInfo) => {
 });
 
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-    if (tab.url && tab.url.startsWith('https://fr.aliexpress.com/')) {
+    if (tab.url && tab.url.includes('https://fr.aliexpress.com/')) {
         checkTokens();
         chrome.action.enable();
     } else
