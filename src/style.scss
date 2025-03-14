@@ -18,6 +18,16 @@ html, body {
 }
 
 @font-face {
+    font-family: 'Poppins-Thin';
+    src: url('/fonts/Poppins-ExtraLight.ttf') format('truetype');
+}
+
+@font-face {
+    font-family: 'Poppins-Bold';
+    src: url('/fonts/Poppins-Bold.ttf') format('truetype');
+}
+
+@font-face {
     font-family: 'Roboto';
     src: url('/fonts/Roboto.ttf') format('truetype');
 }
@@ -29,4 +39,6 @@ $secondary-color: #191919;
 
 $font-MontserratAlternates-Thin: 'MontserratAlternates-Thin', sans-serif;
 $font-MontserratAlternates-Bold: 'MontserratAlternates-Bold', sans-serif;
+$font-Poppins-Thin: 'Poppins-Thin', sans-serif;
+$font-Poppins-Bold: 'Poppins-Bold', sans-serif;
 $font-Roboto: 'Roboto', sans-serif;

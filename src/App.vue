@@ -40,7 +40,7 @@
 
             const response = await sendCodeToServer(code);
             if (!response.ok)
-                console.error(`HTTP error! status: ${response.status}`);
+                return console.error(`HTTP error! status: ${response.status}`);
 
             const data = await response.json();
             if (data.token) {
