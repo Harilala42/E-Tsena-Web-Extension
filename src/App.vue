@@ -21,7 +21,7 @@
         });
     });
 
-    function checkStatusAuth (status) {
+    const checkStatusAuth = (status) => {
         if (status === 'denied') {
             statusAuth.value = 'identity';
             showAuthentication.value = true;
@@ -46,18 +46,33 @@
             if (data.token) {
                 const token = {
                     token: data.token,
-                    expireTime: new Date().getTime() + data.expireTime * 1000
+                    expireTime: new Date().getTime() + data.expireTime * 1000,
+                    userInfo: data.userInfo
                 };
                 chrome.storage.local.set({
                         'jwt': token,
                         'isAlreadyRefreshed': 'no',
                         'isAlreadyAuthorize': 'no'
-                    }, () => console.log('JWT successfully stored')
+                    }, () => {
+                        console.log('JWT successfully stored');
+                        chrome.notifications.create("successAuth", {
+                            type: "basic",
+                            iconUrl: "/icons/check_circle.svg",
+                            title: "✅ Successful Google Authentication ✅",
+                            message: `Bienvenue ${token.userInfo.name} 😄.`
+                        });
+                    }
                 );
             } else
                 console.error('JWT from server is required');
         } catch (error) {
-            console.error(`Error during authentication: ${error.message}`);
+            statusAuth.value = 'identity';
+            chrome.notifications.create("failureAuth", {
+                type: "basic",
+                iconUrl: "/icons/warning.svg",
+                title: "❌ Failed Google Authentication ❌",
+                message: "Un problème est survenu lors de l'authentification 😓."
+            });
         }
     };
 
