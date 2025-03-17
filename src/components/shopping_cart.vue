@@ -1,57 +1,89 @@
 <script setup>
-    import { ref, onMounted } from 'vue';
+    import { ref, computed } from 'vue';
     import { useRouter } from 'vue-router';
 
     const router = useRouter();
-    var doPurchaseIt = ref(false);
+    var purchaseIt = ref(false);
     var url = ref('');
 
-    const sendLinkToServer = () => {
-        chrome.storage.local.get(['jwt'], async (result) => {
-            if (result.jwt) {
-                try {
+    const truncatedUrl = computed(() => {
+        return url.value.length > 20 ? url.value.substring(0, 30) : url.value;
+    });
+
+    // Obtention des informations du Product AE
+    const getProductInfo = async () => {
+        try {
+            const itemId = await extractItemID(url.value);
+            console.log(`ID Item: ${itemId}`);
+
+            const response = await sendIdToServer(itemId);
+            if (!response.ok)
+                return console.error(`HTTP error! status: ${response.status}`);
+
+            const data = await response.json();
+            console.log(`Info's product: ${JSON.stringify(data)}`);
+            url.value = '';
+        } catch (error) {
+            url.value = '';
+            chrome.notifications.create("failureGetItem", {
+                type: "basic",
+                iconUrl: "/icons/warning.svg",
+                title: "❌ Item found nowhere ❌",
+                message: "Le produit recherché est introuvable 😓."
+            });
+        }
+    }
+
+    // Extraction du itemID du link
+    const extractItemID = (url) => {
+        return new Promise((resolve, reject) => {
+            const parsedUrl = new URL(url);
+            const path = parsedUrl.pathname;
+            const match = path.match(/\/item\/(\d+)\.html/);
+
+            if (match && match[1])
+                resolve (match[1]);
+            
+            reject ('Wrong Link profided by User');
+        });
+    };
+
+    // Envoie du itemId vers le server
+    const sendIdToServer = (itemId) => {
+        return new Promise((resolve) => {
+            chrome.storage.local.get(['jwt'], async (result) => {
+                if (result.jwt) {
                     const { token } = result.jwt;
-                    console.log(`ID Item: ${url.value}`);
-                    const response = await fetch(import.meta.env.VITE_URL_INFOPRODUCT_AE, {
+
+                    resolve(fetch(import.meta.env.VITE_URL_INFOPRODUCT_AE, {
                         method: 'POST',
                         headers: {
                             'Authorization': `Bearer ${token}`,
                             'Content-Type': 'application/json'
                         },
-                        body: JSON.stringify({ itemId: url.value })
-                    });
-
-                    if (!response.ok)
-                        return console.error(`HTTP error! status: ${response.status}`);
-
-                    const data = await response.json();
-                    console.log(`Info's product: ${JSON.stringify(data)}`);
-                } catch (error) {
-                    chrome.notifications.create("failureGetItem", {
-                        type: "basic",
-                        iconUrl: "/icons/warning.svg",
-                        title: "❌ Item found nowhere ❌",
-                        message: "Le produit recherché est introuvable 😓."
-                    });
+                        body: JSON.stringify({ itemId: itemId })
+                    }));
                 }
-            }
+            });
         });
-    }
+    };
 </script>
 
 <template>
     <div class="container">
-        <div class="cart">
+        <div class="title">
             <img src="/icons/shopping_cart.svg" alt="cart">
             <h1>Panier d'Achat</h1>
         </div>
-        <div class="shopping">
+        <div class="cart">
             <div class="searchBar">
-                <input type="text" class="urlItem" placeholder="Collez votre url ici" v-model="url">
-                <button class="addItem" :disabled="doPurchaseIt" @click="sendLinkToServer">
-                    <img src="/icons/paste.svg" alt="cart">
-                    <p class="text">Ajouter</p>
-                </button>
+                <input type="text" class="urlItem" placeholder="Collez votre url ici" v-model="url" :value="truncatedUrl">
+                <div class="btnSearch">
+                    <img src="/icons/close_search.svg" v-if="url !== ''" alt="cart" @click="url = ''">
+                    <button class="addItem" :disabled="purchaseIt" @click="getProductInfo">
+                        <img src="/icons/paste.svg" alt="cart"><p>Ajouter</p>
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -70,7 +102,7 @@
         min-width: 400px;
         min-height: 480px;
 
-        .cart {
+        .title {
             display: flex;
             flex-direction: row;
             margin-bottom: 10px;
@@ -89,7 +121,7 @@
             }
         }
 
-        .shopping {
+        .cart {
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -98,47 +130,71 @@
             .searchBar {
                 display: flex;
                 flex-direction: row;
+                align-items: center;
+                background: style.$text-color;
+                justify-content: space-evenly;
+                border-radius: 15px;
+                border: none;
+                width: 350px;
+                height: 30px;
 
-                input {
-                    width: 250px;
+                input[type="text"] {
+                    width: 200px;
                     height: 30px;
-                    background: style.$text-color;
                     border: none;
                     border-radius: 15px 0 0 15px;
-                }
-
-                input::placeholder {
-                    color: #494444;
-                    font-size: 12px;
-                    font-family: style.$font-Poppins-Thin;
+                    background-color: transparent;
                     padding-left: 15px;
+
+                    &::placeholder {
+                        color: style.$secondary-color;
+                        font-size: 12px;
+                        font-family: style.$font-Poppins-Thin;
+                    }
+
+                    &:focus {
+                        outline: none;
+                        border: none;
+                        box-shadow: none;
+                    }
                 }
 
-                .addItem {
-                    width: 100px;
-                    height: 30px;
+                .btnSearch {
                     display: flex;
                     flex-direction: row;
-                    justify-content: center;
                     align-items: center;
-                    background-color: style.$primary-color;
-                    border: 2px solid #C54412;
-                    border-radius: 0 15px 15px 0;
+                    justify-content: flex-end;
+                    margin-right: 1px;
+                    width: 150px;
 
-                    img {
-                        width: 16px;
-                        height: 16px;
-                        margin-right: 5px;
+                    img:first-child:hover { cursor: pointer; }
+
+                    .addItem {
+                        width: 100px;
+                        height: 28px;
+                        display: flex;
+                        flex-direction: row;
+                        justify-content: center;
+                        align-items: center;
+                        background-color: style.$primary-color;
+                        border-radius: 15px;
+                        border: none;
+
+                        img {
+                            width: 16px;
+                            height: 16px;
+                            margin-right: 5px;
+                        }
+
+                        p {
+                            font-weight: 800;
+                            font-size: 12px;
+                            font-family: style.$font-Poppins-Bold;
+                            color: style.$text-color;
+                        }
+
+                        &:hover { cursor: pointer; }
                     }
-
-                    p {
-                        font-weight: 800;
-                        font-size: 12px;
-                        font-family: style.$font-Poppins-Bold;
-                        color: style.$text-color;
-                    }
-
-                    &:hover { cursor: pointer; }
                 }
             }
         }

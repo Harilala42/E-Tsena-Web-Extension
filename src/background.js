@@ -192,4 +192,4 @@ const checkTokens = () => {
     });
 };
 
-setInterval(checkTokens, 1 * 60 * 1000);
+setInterval(checkTokens, 5 * 60 * 1000);
