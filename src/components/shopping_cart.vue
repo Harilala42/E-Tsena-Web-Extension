@@ -34,17 +34,22 @@
         }
     }
 
-    // Extraction du itemID du link
+    // Extraction du itemID de l'URL
     const extractItemID = (url) => {
         return new Promise((resolve, reject) => {
             const parsedUrl = new URL(url);
+
+            const allowedDomains = ['fr.aliexpress.com', 'www.aliexpress.com'];
+            if (!allowedDomains.includes(parsedUrl.hostname))
+                reject('Invalid domain! Please provide a valid AliExpress URL');
+
             const path = parsedUrl.pathname;
             const match = path.match(/\/item\/(\d+)\.html/);
 
             if (match && match[1])
-                resolve (match[1]);
+                resolve(match[1]);
             
-            reject ('Wrong Link profided by User');
+            reject('No ID item found in the url');
         });
     };
 
@@ -77,7 +82,7 @@
         </div>
         <div class="cart">
             <div class="searchBar">
-                <input type="text" class="urlItem" placeholder="Collez votre url ici" v-model="url" :value="truncatedUrl">
+                <input type="text" placeholder="Collez votre url ici" v-model="url" :value="truncatedUrl">
                 <div class="btnSearch">
                     <img src="/icons/close_search.svg" v-if="url !== ''" alt="cart" @click="url = ''">
                     <button class="addItem" :disabled="purchaseIt" @click="getProductInfo">

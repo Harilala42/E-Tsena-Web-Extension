@@ -96,11 +96,11 @@
                 { url: url, interactive: true },
                 (redirect_uri) => {
                     if (chrome.runtime.lastError)
-                        reject (`Error getting code: ${chrome.runtime.lastError.message}`);
+                        reject(`Error getting code: ${chrome.runtime.lastError.message}`);
 
                     const urlParams = new URLSearchParams(new URL(redirect_uri).search);
                     const authorizationCode = urlParams.get("code");
-                    resolve (authorizationCode);
+                    resolve(authorizationCode);
                 }
             );
         });
