@@ -3,6 +3,7 @@
     import { useRouter } from 'vue-router';
 
     const router = useRouter();
+    var selectedItems = ref([]);
     var purchaseIt = ref(false);
     var url = ref('');
 
@@ -21,7 +22,22 @@
                 return console.error(`HTTP error! status: ${response.status}`);
 
             const data = await response.json();
-            console.log(`Info's product: ${JSON.stringify(data)}`);
+            const item = data.info.aliexpress_ds_product_get_response.result;
+
+            const skuInfo = item.ae_item_sku_info_dtos.ae_item_sku_info_d_t_o[0];
+            const imageUrls = item.ae_multimedia_info_dto.image_urls.split(';');
+
+            selectedItems.value.push({
+                item_id: itemId,
+                price: skuInfo.sku_price,
+                img_url: imageUrls[0],
+                details: item.ae_item_base_info_dto.subject,
+                rates: item.ae_item_base_info_dto.avg_evaluation_rating,
+                sale_price: skuInfo.offer_sale_price,
+                is_on_sale: skuInfo.offer_sale_price !== skuInfo.sku_price
+            });
+
+            console.log(`Info's product: ${JSON.stringify(selectedItems.value[0])}`);
             url.value = '';
         } catch (error) {
             url.value = '';
@@ -89,6 +105,9 @@
                         <img src="/icons/paste.svg" alt="cart"><p>Ajouter</p>
                     </button>
                 </div>
+            </div>
+            <div class="chooseProduct">
+                <div class="item"></div>
             </div>
         </div>
     </div>
