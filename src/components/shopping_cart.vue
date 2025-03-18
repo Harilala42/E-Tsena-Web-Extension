@@ -105,9 +105,17 @@
                 </div>
             </div>
             <div class="selectedProduct">
-                <div v-for="item in selectedItems" :key="item.item_id">
-                    <img :src="item.img_url" :alt="item.item_id">
-                    <p>{{ item.details }}</p>
+                <div class="item" v-for="item in selectedItems" :key="item.item_id">
+                    <img class="img_product" :src="item.img_url" :alt="item.item_id">
+                    <div class="utils">
+                        <img src="/icons/star.svg" alt="star">
+                        <p class="rates">{{ item.rates }}</p>
+                        <p class="sale_price" v-if="item.is_on_sale" >{{ item.is_on_sale ? '-' + Math.round(((item.price - item.sale_price) / item.price) * 100) + '%' : undefined }}</p>
+                    </div>
+                    <div class="details">
+                        <p class="description">{{ item.details }}</p>
+                        <p class="price">${{ item.price }}</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -219,6 +227,67 @@
                         }
 
                         &:hover { cursor: pointer; }
+                    }
+                }
+            }
+
+            .selectedProduct {
+                width: 400px;
+                height: 250px;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                overflow-y: scroll;
+                overflow-x: hidden;
+
+                .item {
+                    width: 350px;
+                    height: 80px;
+                    display: grid;
+                    border: 1px solid style.$primary-color;
+                    border-radius: 15px;
+
+                    .img_product {
+                        width: 60px;
+                        height: 60px;
+                        border-radius: 5px;
+                    }
+
+                    .utils {
+                        display: flex;
+                        flex-direction: row;
+                        align-items: center;
+                        justify-content: flex-start;
+                        gap: 5px;
+
+                        .rates {
+                            font-size: 15px;
+                            font-family: style.$font-Poppins-Medium;
+                            color: style.$text-color;
+                        }
+
+                        .sale_price {
+                            font-size: 15px;
+                            font-family: style.$font-Poppins-Bold;
+                            color: style.$primary-color;
+                        }
+                    }
+
+                    .details {
+                        display: flex;
+                        flex-direction: column;
+
+                        .description {
+                            font-size: 10px;
+                            font-family: style.$font-Poppins-Bold;
+                            color: style.$text-color;
+                        }
+
+                        .price {
+                            font-size: 15px;
+                            font-family: style.$font-Poppins-Bold;
+                            color: style.$text-color;
+                        }
                     }
                 }
             }
