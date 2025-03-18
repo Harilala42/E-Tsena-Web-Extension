@@ -27,6 +27,7 @@
             const skuInfo = item.ae_item_sku_info_dtos.ae_item_sku_info_d_t_o[0];
             const imageUrls = item.ae_multimedia_info_dto.image_urls.split(';');
 
+            url.value = '';
             selectedItems.value.push({
                 item_id: itemId,
                 price: skuInfo.sku_price,
@@ -36,9 +37,6 @@
                 sale_price: skuInfo.offer_sale_price,
                 is_on_sale: skuInfo.offer_sale_price !== skuInfo.sku_price
             });
-
-            console.log(`Info's product: ${JSON.stringify(selectedItems.value[0])}`);
-            url.value = '';
         } catch (error) {
             url.value = '';
             chrome.notifications.create("failureGetItem", {
@@ -106,8 +104,11 @@
                     </button>
                 </div>
             </div>
-            <div class="chooseProduct">
-                <div class="item"></div>
+            <div class="selectedProduct">
+                <div v-for="item in selectedItems" :key="item.item_id">
+                    <img :src="item.img_url" :alt="item.item_id">
+                    <p>{{ item.details }}</p>
+                </div>
             </div>
         </div>
     </div>
