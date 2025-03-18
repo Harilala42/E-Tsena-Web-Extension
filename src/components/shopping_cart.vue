@@ -114,7 +114,7 @@
                     </div>
                     <div class="details">
                         <p class="description">{{ item.details }}</p>
-                        <p class="price">${{ item.price }}</p>
+                        <p class="price">${{ !item.is_on_sale ? item.price : item.price - (item.price - item.sale_price) }}</p>
                     </div>
                 </div>
             </div>
