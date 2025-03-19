@@ -1,11 +1,29 @@
 <script setup>
-    import { ref, computed } from 'vue';
+    import { ref, computed, onMounted, watch } from 'vue';
     import { useRouter } from 'vue-router';
 
     const router = useRouter();
     var selectedItems = ref([]);
     var purchaseIt = ref(false);
     var url = ref('');
+
+    onMounted(() => {
+        chrome.storage.local.get(['cart'], async (result) => {
+            let cartData = [];
+            
+            if (result.cart)
+                cartData = await JSON.parse(result.cart);
+            if (!Array.isArray(cartData)) {
+                cartData = [];
+                chrome.storage.local.set({ cart: JSON.stringify(cartData) });
+            }
+            selectedItems.value = cartData;
+        });
+    });
+
+    watch(selectedItems, (newVal) => {
+        chrome.storage.local.set({ cart: JSON.stringify(newVal) });
+    }, { deep: true });
 
     const truncatedUrl = computed(() => {
         return url.value.length > 20 ? url.value.substring(0, 30) : url.value;
@@ -47,6 +65,7 @@
             }
         } catch (error) {
             url.value = '';
+            console.error(`Error: ${error}`)
             chrome.notifications.create("failureGetItem", {
                 type: "basic",
                 iconUrl: "/icons/warning.svg",
