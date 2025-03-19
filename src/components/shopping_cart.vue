@@ -14,7 +14,8 @@
     // Obtention des informations du Product AE
     const getProductInfo = async () => {
         try {
-            const itemId = await extractItemID(url.value);
+            const url_buffer = url.value;
+            const itemId = await extractItemID(url_buffer);
             console.log(`ID Item: ${itemId}`);
 
             const response = await sendIdToServer(itemId);
@@ -28,15 +29,22 @@
             const imageUrls = item.ae_multimedia_info_dto.image_urls.split(';');
 
             url.value = '';
-            selectedItems.value.push({
-                item_id: itemId,
-                price: skuInfo.sku_price,
-                img_url: imageUrls[0],
-                details: item.ae_item_base_info_dto.subject,
-                rates: item.ae_item_base_info_dto.avg_evaluation_rating,
-                sale_price: skuInfo.offer_sale_price,
-                is_on_sale: skuInfo.offer_sale_price !== skuInfo.sku_price
-            });
+            const existingItem = selectedItems.value.find(id => id.item_id === itemId);
+            if (existingItem)
+                existingItem.number_item++;
+            else {
+                selectedItems.value.push({
+                    item_id: itemId,
+                    item_url: url_buffer,
+                    price: skuInfo.sku_price,
+                    img_url: imageUrls[0],
+                    details: item.ae_item_base_info_dto.subject,
+                    rates: item.ae_item_base_info_dto.avg_evaluation_rating,
+                    sale_price: skuInfo.offer_sale_price,
+                    is_on_sale: skuInfo.offer_sale_price !== skuInfo.sku_price,
+                    number_item: 1
+                });
+            }
         } catch (error) {
             url.value = '';
             chrome.notifications.create("failureGetItem", {
@@ -107,15 +115,29 @@
             <div class="selectedProduct">
                 <div class="item" v-for="item in selectedItems" :key="item.item_id">
                     <img class="img_product" :src="item.img_url" :alt="item.item_id">
-                    <div class="utils">
-                        <img src="/icons/star.svg" alt="star">
-                        <p class="rates">{{ item.rates }}</p>
-                        <p class="sale_price" v-if="item.is_on_sale" >{{ item.is_on_sale ? '-' + Math.round(((item.price - item.sale_price) / item.price) * 100) + '%' : undefined }}</p>
+                    <div class="info_product">
+                        <div class="utils">
+                            <img src="/icons/star.svg" alt="star">
+                            <p class="rates">{{ item.rates }}</p>
+                            <p class="sale_price" v-if="item.is_on_sale" >{{ item.is_on_sale ? '-' + Math.round(((item.price - item.sale_price) / item.price) * 100) + '%' : undefined }}</p>
+                        </div>
+                        <div class="details">
+                            <p class="description">{{ item.details }}</p>
+                            <div class="ref">
+                                <div class="number">
+                                    <p class="price">${{ !item.is_on_sale ? item.price : item.price - (item.price - item.sale_price) }}</p>
+                                    <p>X {{ item.number_item }}</p>
+                                    <p class="icon" @click="item.number_item++">+</p>
+                                    <p class="icon" @click="item.number_item > 1 ? item.number_item-- : item.number_item = item.number_item">-</p>
+                                </div>
+                                <a :href="item.item_url" target="blank">
+                                    <img src="/icons/link.svg" alt="link">
+                                    <p>Voir l'article</p>
+                                </a>
+                            </div>
+                        </div>
                     </div>
-                    <div class="details">
-                        <p class="description">{{ item.details }}</p>
-                        <p class="price">${{ !item.is_on_sale ? item.price : item.price - (item.price - item.sale_price) }}</p>
-                    </div>
+                    <img src="/icons/delete.svg" alt="delete" @click="selectedItems = selectedItems.filter(id => id.item_id !== item.item_id)">
                 </div>
             </div>
         </div>
@@ -170,6 +192,7 @@
                 border: none;
                 width: 350px;
                 height: 30px;
+                margin-bottom: 10px;
 
                 input[type="text"] {
                     width: 200px;
@@ -233,61 +256,128 @@
 
             .selectedProduct {
                 width: 400px;
-                height: 250px;
+                height: 350px;
                 display: flex;
                 flex-direction: column;
                 align-items: center;
                 overflow-y: scroll;
                 overflow-x: hidden;
+                gap: 10px;
 
                 .item {
                     width: 350px;
-                    height: 80px;
-                    display: grid;
+                    min-height: 100px;
+                    display: flex;
+                    flex-direction: row;
+                    justify-content: center;
+                    align-items: center;
+                    position: relative;
                     border: 1px solid style.$primary-color;
                     border-radius: 15px;
+                    margin-top: 8px;
+                    gap: 5px;
 
                     .img_product {
                         width: 60px;
                         height: 60px;
                         border-radius: 5px;
+                        margin-left: 5px;
                     }
 
-                    .utils {
-                        display: flex;
-                        flex-direction: row;
-                        align-items: center;
-                        justify-content: flex-start;
+                    .info_product{
                         gap: 5px;
 
-                        .rates {
-                            font-size: 15px;
-                            font-family: style.$font-Poppins-Medium;
-                            color: style.$text-color;
+                        .utils {
+                            display: flex;
+                            flex-direction: row;
+                            align-content: flex-end;
+                            gap: 5px;
+
+                            img {
+                                width: 20px;
+                                height: 20px;
+                            }
+
+                            .rates {
+                                font-size: 15px;
+                                font-family: style.$font-Poppins-Medium;
+                                color: style.$text-color;
+                            }
+
+                            .sale_price {
+                                font-size: 15px;
+                                font-family: style.$font-Poppins-Bold;
+                                color: style.$primary-color;
+                            }
                         }
 
-                        .sale_price {
-                            font-size: 15px;
-                            font-family: style.$font-Poppins-Bold;
-                            color: style.$primary-color;
+                        .details {
+                            display: flex;
+                            flex-direction: column;
+
+                            .description {
+                                font-size: 10px;
+                                font-family: style.$font-Poppins-Bold;
+                                color: style.$text-color;
+                                width: 275px;
+                            }
+
+                            .ref {
+                                display: flex;
+                                flex-direction: row;
+                                align-items: center;
+                                justify-content: space-between;
+
+                                .number {
+                                    display: flex;
+                                    flex-direction: row;                                
+                                    align-items: center;
+                                    gap: 2px;
+
+                                    .price, .icon {
+                                        font-size: 15px;
+                                        font-family: style.$font-Poppins-Bold;
+                                        color: style.$text-color;
+                                    }
+
+                                    p:nth-child(2) {
+                                        font-size: 12px;
+                                        font-family: style.$font-Poppins-Bold;
+                                        color: style.$text-color;
+                                    }
+
+                                    .icon { margin-left: 2px; }
+                                    .icon:hover { cursor: pointer; }
+                                }
+
+                                a {
+                                    display: flex;
+                                    flex-direction: row;
+                                    font-family: style.$font-Poppins-Regular;
+                                    font-size: 10px;
+                                    color: style.$text-color;
+                                    margin-right: 10px;
+                                    gap: 5px;
+
+                                    img {
+                                        width: 15px;
+                                        height: 15px;
+                                    }
+                                }
+                            }
                         }
                     }
 
-                    .details {
-                        display: flex;
-                        flex-direction: column;
+                    img:last-child {
+                        width: 25px;
+                        height: 25px;
+                        background-color: style.$background-color;
+                        position: absolute;
+                        z-index: 0;
+                        top: -14%;
+                        left: 90%;
 
-                        .description {
-                            font-size: 10px;
-                            font-family: style.$font-Poppins-Bold;
-                            color: style.$text-color;
-                        }
-
-                        .price {
-                            font-size: 15px;
-                            font-family: style.$font-Poppins-Bold;
-                            color: style.$text-color;
-                        }
+                        &:hover { cursor: pointer; }
                     }
                 }
             }
