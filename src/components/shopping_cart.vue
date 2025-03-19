@@ -10,14 +10,11 @@
     onMounted(() => {
         chrome.storage.local.get(['cart'], async (result) => {
             let cartData = [];
-            
-            if (result.cart)
+
+            if (result.cart) {
                 cartData = await JSON.parse(result.cart);
-            if (!Array.isArray(cartData)) {
-                cartData = [];
-                chrome.storage.local.set({ cart: JSON.stringify(cartData) });
+                selectedItems.value = cartData;
             }
-            selectedItems.value = cartData;
         });
     });
 
