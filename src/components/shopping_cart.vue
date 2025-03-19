@@ -307,7 +307,7 @@
                             display: flex;
                             flex-direction: row;
                             align-content: flex-end;
-                            gap: 5px;
+                            gap: 3px;
 
                             img {
                                 width: 20px;
