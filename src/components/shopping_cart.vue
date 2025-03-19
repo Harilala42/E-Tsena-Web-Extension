@@ -138,7 +138,7 @@
                             <p class="sale_price" v-if="item.is_on_sale" >{{ item.is_on_sale ? '-' + Math.round(((item.price - item.sale_price) / item.price) * 100) + '%' : undefined }}</p>
                         </div>
                         <div class="details">
-                            <p class="description">{{ item.details }}</p>
+                            <p class="description">{{ item.details.length > 100 ? item.details.substring(0, 100) + '...' : item.details }}</p>
                             <div class="ref">
                                 <div class="number">
                                     <p class="price">${{ !item.is_on_sale ? item.price : item.price - (item.price - item.sale_price) }}</p>
