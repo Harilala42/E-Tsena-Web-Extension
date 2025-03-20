@@ -32,6 +32,7 @@
             const url_buffer = url.value;
             const itemId = await extractItemID(url_buffer);
             console.log(`ID Item: ${itemId}`);
+            purchaseIt.value = true;
 
             const response = await sendIdToServer(itemId);
             if (!response.ok)
@@ -43,7 +44,7 @@
             const skuInfo = item.ae_item_sku_info_dtos.ae_item_sku_info_d_t_o[0];
             const imageUrls = item.ae_multimedia_info_dto.image_urls.split(';');
 
-            url.value = '';
+            url.value = ''; purchaseIt.value = false;
             const existingItem = selectedItems.value.find(id => id.item_id === itemId);
             if (existingItem)
                 existingItem.number_item++;
@@ -61,7 +62,7 @@
                 });
             }
         } catch (error) {
-            url.value = '';
+            url.value = ''; purchaseIt.value = false;
             console.error(`Error: ${error}`)
             chrome.notifications.create("failureGetItem", {
                 type: "basic",
@@ -123,7 +124,7 @@
                 <input type="text" placeholder="Collez votre url ici" v-model="url" :value="truncatedUrl">
                 <div class="btnSearch">
                     <img src="/icons/close_search.svg" v-if="url !== ''" alt="cart" @click="url = ''">
-                    <button class="addItem" :disabled="purchaseIt" @click="getProductInfo">
+                    <button :class="{ 'addItem': !purchaseIt, 'disabledAddItem': purchaseIt }" :disabled="purchaseIt" @click="getProductInfo">
                         <img src="/icons/paste.svg" alt="cart"><p>Ajouter</p>
                     </button>
                 </div>
@@ -241,14 +242,13 @@
 
                     img:first-child:hover { cursor: pointer; }
 
-                    .addItem {
+                    @mixin shared-addItem {
                         width: 100px;
                         height: 28px;
                         display: flex;
                         flex-direction: row;
                         justify-content: center;
                         align-items: center;
-                        background-color: style.$primary-color;
                         border-radius: 15px;
                         border: none;
 
@@ -264,8 +264,18 @@
                             font-family: style.$font-Poppins-Bold;
                             color: style.$text-color;
                         }
+                    }
 
+                    .addItem {
+                        @include shared-addItem;
+                        background-color: style.$primary-color;
                         &:hover { cursor: pointer; }
+                    }
+
+                    .disabledAddItem {
+                        @include shared-addItem;
+                        background-color: #CA6037;
+                        pointer-events: none;
                     }
                 }
             }
