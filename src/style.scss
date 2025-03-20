@@ -13,6 +13,11 @@ html, body {
 }
 
 @font-face {
+    font-family: 'MontserratAlternates-Regular';
+    src: url('/fonts/MontserratAlternates-Regular.ttf') format('truetype');
+}
+
+@font-face {
     font-family: 'MontserratAlternates-Bold';
     src: url('/fonts/MontserratAlternates-Bold.ttf') format('truetype');
 }
@@ -48,6 +53,7 @@ $primary-color: #FF5A19;
 $secondary-color: #191919;
 
 $font-MontserratAlternates-Thin: 'MontserratAlternates-Thin', sans-serif;
+$font-MontserratAlternates-Regular: 'MontserratAlternates-Regular', sans-serif;
 $font-MontserratAlternates-Bold: 'MontserratAlternates-Bold', sans-serif;
 $font-Poppins-Thin: 'Poppins-Thin', sans-serif;
 $font-Poppins-Regular: 'Poppins-Regular', sans-serif;

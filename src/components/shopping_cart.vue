@@ -111,14 +111,31 @@
             });
         });
     };
+
+    const formatDate = (timestamp) => {
+        const date = new Date(timestamp);
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+        
+        return `${day}/${month}/${year}`;
+    }
 </script>
 
 <template>
     <div class="container">
         <div class="title">
-            <img src="/icons/shopping_cart.svg" alt="cart">
-            <h1>Panier d'Achat</h1>
+            <div class="icon-title">
+                <img src="/icons/shopping_cart.svg" alt="cart">
+                <h1 class="text">Panier d'Achat</h1>
+            </div>
+            <div class="icon-title">
+                <div class="vertical-bar"></div>
+                <img src="/icons/calendar.svg" alt="calendar">
+                <h1 class="date">{{ formatDate(Date.now()) }}</h1>
+            </div>
         </div>
+        <div class="horizontal-bar"></div>
         <div class="cart">
             <div class="searchBar">
                 <input type="text" placeholder="Collez votre url ici" v-model="url" :value="truncatedUrl">
@@ -129,7 +146,11 @@
                     </button>
                 </div>
             </div>
-            <div class="selectedProduct">
+            <div class="empty_cart" v-if="selectedItems.length == 0">
+                    <img src="/icons/empty_cart.png" alt="empty cart">
+                    <p class="message">Le panier est vide.</p>
+            </div>
+            <div class="selectedProduct" v-else>
                 <div class="item" v-for="item in selectedItems" :key="item.item_id">
                     <img class="img_product" :src="item.img_url" :alt="item.item_id">
                     <div class="info_product">
@@ -142,7 +163,9 @@
                             <p class="description">{{ item.details.length > 100 ? item.details.substring(0, 100) + '...' : item.details }}</p>
                             <div class="ref">
                                 <div class="number">
-                                    <p class="price">${{ !item.is_on_sale ? item.price : item.price - (item.price - item.sale_price) }}</p>
+                                    <p class="price">
+                                        ${{ !item.is_on_sale ? Number(item.price).toFixed(2) : Number(item.sale_price).toFixed(2) }}
+                                    </p>
                                     <p>X {{ item.number_item }}</p>
                                     <p class="icon" @click="item.number_item++">+</p>
                                     <p class="icon" @click="item.number_item > 1 ? item.number_item-- : item.number_item = item.number_item">-</p>
@@ -158,6 +181,7 @@
                 </div>
             </div>
         </div>
+        <div class="horizontal-bar"></div>
     </div>
 </template>
 
@@ -172,25 +196,55 @@
         background-color: style.$background-color;
         padding: 30px 0;
         min-width: 400px;
-        min-height: 480px;
+        min-height: 500px;
 
         .title {
             display: flex;
             flex-direction: row;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 5px;
+            width: 350px;
+
+            .icon-title {
+                display: flex;
+                flex-direction: row;
+                gap: 5px;
+
+                img {
+                    width: 24px;
+                    height: 24px;
+                }
+
+                @mixin shared-h1 {
+                    font-weight: 800;
+                    font-size: 20px;
+                    color: style.$text-color;
+                }
+
+                .text {
+                    @include shared-h1;
+                    font-family: style.$font-MontserratAlternates-Bold;
+                }
+
+                .date {
+                    @include shared-h1;
+                    font-family: style.$font-MontserratAlternates-Regular;
+                }
+
+                .vertical-bar {
+                    width: 1px;
+                    height: 24px;
+                    background-color: style.$text-color;
+                }
+            }
+        }
+
+        .horizontal-bar {
+            width: 350px;
+            height: 1px;
+            background-color: style.$text-color;
             margin-bottom: 10px;
-
-            img {
-                width: 24px;
-                height: 24px;
-                margin-right: 5px;
-            }
-
-            h1 {
-                font-weight: 800;
-                font-size: 20px;
-                font-family: style.$font-MontserratAlternates-Bold;
-                color: style.$text-color;
-            }
         }
 
         .cart {
@@ -198,6 +252,7 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
+            margin-bottom: 10px;
 
             .searchBar {
                 display: flex;
@@ -231,6 +286,7 @@
                         box-shadow: none;
                     }
                 }
+
 
                 .btnSearch {
                     display: flex;
@@ -280,14 +336,32 @@
                 }
             }
 
+            .empty_cart {
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+                min-width: 400px;
+                min-height: 350px;
+
+                .message {
+                    font-weight: 800;
+                    font-size: 20px;
+                    color: style.$text-color;
+                    font-family: style.$font-MontserratAlternates-Regular;
+                    margin-top: 5px;
+                }
+            }
+
             .selectedProduct {
                 width: 400px;
                 height: 350px;
                 display: flex;
                 flex-direction: column;
                 align-items: center;
-                overflow-y: scroll;
+                overflow-y: auto;
                 overflow-x: hidden;
+                transition: max-height 0.8s ease;
                 gap: 10px;
 
                 .item {
@@ -311,17 +385,15 @@
                     }
 
                     .info_product{
-                        gap: 5px;
-
                         .utils {
                             display: flex;
                             flex-direction: row;
-                            align-content: flex-end;
-                            gap: 3px;
+                            align-items: baseline;
+                            gap: 5px;
 
                             img {
-                                width: 20px;
-                                height: 20px;
+                                width: 15px;
+                                height: 15px;
                             }
 
                             .rates {
@@ -357,7 +429,7 @@
                                 .number {
                                     display: flex;
                                     flex-direction: row;                                
-                                    align-items: center;
+                                    align-items: baseline;
                                     gap: 2px;
 
                                     .price, .icon {
@@ -372,8 +444,10 @@
                                         color: style.$text-color;
                                     }
 
-                                    .icon { margin-left: 2px; }
-                                    .icon:hover { cursor: pointer; }
+                                    .icon {
+                                        margin-left: 2px;
+                                        &:hover { cursor: pointer; }
+                                    }
                                 }
 
                                 a {
