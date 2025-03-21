@@ -378,10 +378,10 @@
                     gap: 5px;
 
                     .img_product {
-                        width: 60px;
-                        height: 60px;
+                        width: 80px;
+                        height: 80px;
                         border-radius: 5px;
-                        margin-left: 5px;
+                        margin-left: 10px;
                     }
 
                     .info_product{
@@ -417,7 +417,7 @@
                                 font-size: 10px;
                                 font-family: style.$font-Poppins-Bold;
                                 color: style.$text-color;
-                                width: 275px;
+                                width: 250px;
                             }
 
                             .ref {
