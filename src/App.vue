@@ -163,7 +163,7 @@
         background-color: style.$background-color;
         padding: 30px 0;
         min-width: 400px;
-        min-height: 480px;
+        min-height: 500px;
 
         .brand {
             width: 250px;
