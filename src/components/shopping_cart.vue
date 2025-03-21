@@ -26,6 +26,13 @@
         return url.value.length > 20 ? url.value.substring(0, 30) : url.value;
     });
 
+    const totalPrice = computed(() => {
+        return selectedItems.value.reduce((sum, item) => {
+            const price = item.is_on_sale ? Number(item.sale_price) : Number(item.price);
+            return sum + price * item.number_item;
+        }, 0).toFixed(2);
+    });
+
     // Obtention des informations du Product AE
     const getProductInfo = async () => {
         try {
@@ -182,6 +189,21 @@
             </div>
         </div>
         <div class="horizontal-bar"></div>
+        <div class="review">
+            <div class="total">
+                <p>Total :</p>
+                <p class="total_price">${{ totalPrice }} +</p>
+                <p class="txt_utils">15% de<br> commission</p>
+            </div>
+            <button :class="{'buyIt': selectedItems.length !== 0, 'disabled-buyIt': selectedItems.length === 0 }" :disabled="selectedItems.length === 0">Acheter</button>
+        </div>
+        <div class="social_media">
+            <div class="icon_social">
+                <a href=""><img src="/icons/facebook.svg" alt="facebook"></a>
+                <a href=""><img src="/icons/whatsapp.svg" alt="whatsapp"></a>
+            </div>
+            <div class="horizontal-bar"></div>
+        </div>
     </div>
 </template>
 
@@ -479,6 +501,96 @@
 
                         &:hover { cursor: pointer; }
                     }
+                }
+            }
+        }
+
+        .review {
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: -10px;
+            margin-bottom: 10px;
+            min-width: 350px;
+            min-height: 50px;
+
+            .total {
+                display: flex;
+                flex-direction: row;
+                align-items: center;
+                gap: 10px;
+
+                @mixin shared_p {
+                    font-size: 20px;
+                    color: style.$text-color;
+                }
+
+                p:first-child {
+                    @include shared_p;
+                    font-family: style.$font-MontserratAlternates-Regular;
+                }
+
+                .total_price {
+                    @include shared_p;
+                    font-family: style.$font-MontserratAlternates-Bold;
+                }
+
+                .txt_utils {
+                    font-size: 10px;
+                    font-family: style.$font-MontserratAlternates-Bold;
+                    color: style.$text-color;
+                    text-align: center;
+                }
+            }
+
+            @mixin shared-btn {
+                width: 75px;
+                height: 30px;
+                color: style.$text-color;
+                font-family: style.$font-Poppins-Bold;
+                font-size: 10px;
+                border-radius: 10px;
+                border: none;
+            }
+
+            button {
+                @include shared-btn;
+                background-color: style.$primary-color;
+
+                &:hover { cursor: pointer; }
+            }
+
+            .disabled-buyIt {
+                @include shared-btn;
+                pointer-events: none;
+                background-color: #CA6037;
+            }
+        }
+
+        .social_media {
+            display: flex;
+            flex-direction: row;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            
+            .icon_social {
+                display: flex;
+                flex-direction: row;
+                position: absolute;
+                justify-content: center;
+                background-color: style.$background-color;
+                width: 80px;
+                height: 30px;
+                z-index: 1;
+                gap: 10px;
+
+                a img {
+                    width: 24px;
+                    height: 24px;
+
+                    &:hover { cursor: pointer; }
                 }
             }
         }
