@@ -199,8 +199,8 @@
         </div>
         <div class="social_media">
             <div class="icon_social">
-                <a href=""><img src="/icons/facebook.svg" alt="facebook"></a>
-                <a href=""><img src="/icons/whatsapp.svg" alt="whatsapp"></a>
+                <a href="" target="blank"><img src="/icons/facebook.svg" alt="facebook"></a>
+                <a href="" target="blank"><img src="/icons/whatsapp.svg" alt="whatsapp"></a>
             </div>
             <div class="horizontal-bar"></div>
         </div>
