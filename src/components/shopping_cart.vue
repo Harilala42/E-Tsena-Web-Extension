@@ -37,24 +37,31 @@
     const getProductInfo = async () => {
         try {
             const url_buffer = url.value;
+            if (url_buffer === '')
+                return ;
+
             const itemId = await extractItemID(url_buffer);
             console.log(`ID Item: ${itemId}`);
             purchaseIt.value = true;
 
             const response = await sendIdToServer(itemId);
             if (!response.ok)
-                return console.error(`HTTP error! status: ${response.status}`);
+                throw new Error(`HTTP error! status: ${response.status}`);
 
             const data = await response.json();
-            const item = data.info.aliexpress_ds_product_get_response.result;
 
+            // Extraction des informations utiles
+            const item = data.info.aliexpress_ds_product_get_response.result;
             const skuInfo = item.ae_item_sku_info_dtos.ae_item_sku_info_d_t_o[0];
             const imageUrls = item.ae_multimedia_info_dto.image_urls.split(';');
+
+            if (parseInt(skuInfo.sku_available_stock) <= 0)
+                throw new Error('Product is out of stock');
 
             url.value = ''; purchaseIt.value = false;
             const existingItem = selectedItems.value.find(id => id.item_id === itemId);
             if (existingItem)
-                existingItem.number_item++;
+                throw new Error('Product is already in the cart');
             else {
                 selectedItems.value.push({
                     item_id: itemId,
@@ -69,13 +76,28 @@
                 });
             }
         } catch (error) {
+            const errorMessage = typeof error?.message === 'string' ? error.message 
+                : typeof error === 'string' ? error : 'An unknown error occurred';
+
+            let userMessage = 'An unexpected error occurred';
+            
+            if (error.response?.status === 404)
+                userMessage = 'Le produit recherché est introuvable 😓.';
+            else if (errorMessage.includes('out of stock'))
+                userMessage = 'Le produit est en rupture de stock 😓.';
+            else if (errorMessage.includes('already in the cart'))
+                userMessage = 'Le produit est déjà présent 😅.';
+            else if (errorMessage.includes('Invalid domain'))
+                userMessage = 'Veuillez fournir un URL AliExpress valide 😓.';
+            else if (errorMessage.includes('No ID item') || url.value)
+                userMessage = 'Impossible d\'identifier le produit 😓.';
+            
             url.value = ''; purchaseIt.value = false;
-            console.error(`Error: ${error}`)
             chrome.notifications.create("failureGetItem", {
                 type: "basic",
                 iconUrl: "/icons/warning.svg",
-                title: "❌ Item found nowhere ❌",
-                message: "Le produit recherché est introuvable 😓."
+                title: `❌ ${errorMessage} ❌`,
+                message: userMessage
             });
         }
     }
@@ -87,7 +109,7 @@
 
             const allowedDomains = ['fr.aliexpress.com', 'www.aliexpress.com'];
             if (!allowedDomains.includes(parsedUrl.hostname))
-                reject('Invalid domain! Please provide a valid AliExpress URL');
+                reject('Invalid domain');
 
             const path = parsedUrl.pathname;
             const match = path.match(/\/item\/(\d+)\.html/);
@@ -95,7 +117,7 @@
             if (match && match[1])
                 resolve(match[1]);
             
-            reject('No ID item found in the url');
+            reject('No ID item found');
         });
     };
 
@@ -119,6 +141,7 @@
         });
     };
 
+    // Obtention de la date d'aujourd'hui
     const formatDate = (timestamp) => {
         const date = new Date(timestamp);
         const day = String(date.getDate()).padStart(2, '0');
@@ -439,7 +462,7 @@
                                 font-size: 10px;
                                 font-family: style.$font-Poppins-Bold;
                                 color: style.$text-color;
-                                width: 250px;
+                                width: 240px;
                             }
 
                             .ref {
@@ -478,7 +501,7 @@
                                     font-family: style.$font-Poppins-Regular;
                                     font-size: 10px;
                                     color: style.$text-color;
-                                    margin-right: 10px;
+                                    margin-right: 5px;
                                     gap: 5px;
 
                                     img {
