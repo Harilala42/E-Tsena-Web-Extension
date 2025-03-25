@@ -28,8 +28,20 @@
 
     const totalPrice = computed(() => {
         return selectedItems.value.reduce((sum, item) => {
-            const price = item.is_on_sale ? Number(item.sale_price) : Number(item.price);
-            return sum + price * item.number_item;
+            let price;
+
+            if (item.has_wholesale) {
+                const applicableTier = item.wholesale_tiers
+                    ?.sort((a, b) => b.min_quantity - a.min_quantity)
+                    ?.find(tier => item.number_item >= parseInt(tier.min_quantity));
+                
+                price = applicableTier 
+                    ? parseFloat(applicableTier.wholesale_price.replace(/"/g, ''))
+                    : item.is_on_sale ? item.sale_price : item.price;
+            } else
+                price = item.is_on_sale ? item.sale_price : item.price;
+            
+            return sum + parseFloat(price) * item.number_item;
         }, 0).toFixed(2);
     });
 
@@ -55,8 +67,19 @@
             const skuInfo = item.ae_item_sku_info_dtos.ae_item_sku_info_d_t_o[0];
             const imageUrls = item.ae_multimedia_info_dto.image_urls.split(';');
 
+            // Vérification des stocks du produit
             if (parseInt(skuInfo.sku_available_stock) <= 0)
                 throw new Error('Product is out of stock');
+
+            // Gestion des ventes en gros du produit
+            const wholesalePrice = skuInfo.wholesale_price_tiers?.length 
+                ? parseFloat(skuInfo.wholesale_price_tiers[0].wholesale_price.replace(/"/g, ''))
+                : null;
+
+            // Obtention des prix du produit
+            const basePrice = wholesalePrice || parseFloat(skuInfo.sku_price);
+            const salePrice = parseFloat(skuInfo.offer_sale_price);
+            const isOnSale = salePrice < basePrice;
 
             url.value = ''; purchaseIt.value = false;
             const existingItem = selectedItems.value.find(id => id.item_id === itemId);
@@ -66,13 +89,17 @@
                 selectedItems.value.push({
                     item_id: itemId,
                     item_url: url_buffer,
-                    price: skuInfo.sku_price,
+                    price: basePrice,
                     img_url: imageUrls[0],
                     details: item.ae_item_base_info_dto.subject,
                     rates: item.ae_item_base_info_dto.avg_evaluation_rating,
-                    sale_price: skuInfo.offer_sale_price,
-                    is_on_sale: skuInfo.offer_sale_price !== skuInfo.sku_price,
-                    number_item: 1
+                    sale_price: salePrice,
+                    is_on_sale: isOnSale,
+                    number_item: 1,
+
+                    // Ajout des informations pour les 'whole_sale'
+                    has_wholesale: skuInfo.wholesale_price_tiers?.length > 0,
+                    wholesale_tiers: skuInfo.wholesale_price_tiers || [],
                 });
             }
         } catch (error) {
@@ -141,6 +168,31 @@
         });
     };
 
+    // Obtention du 'real price' du produit
+    const getItemPrice = (item) => {
+        let price;
+        
+        if (item.has_wholesale) {
+            const applicableTier = item.wholesale_tiers
+                ?.sort((a, b) => b.min_quantity - a.min_quantity)
+                ?.find(tier => item.number_item >= parseInt(tier.min_quantity));
+            
+            price = applicableTier
+                ? parseFloat(applicableTier.wholesale_price?.replace(/"/g, '') || item.price)
+                : item.is_on_sale ? item.sale_price : item.price;
+        } else
+            price = item.is_on_sale ? item.sale_price : item.price;
+        
+        return Number(price).toFixed(2) || 0;
+    };
+
+    // Vérification si les ventes en gros sont en solde
+    const hasWholesaleDiscount = (item) => {
+        return item.has_wholesale && item.wholesale_tiers.some(
+            tier => item.number_item >= parseInt(tier.min_quantity)
+        );
+    };
+
     // Obtention de la date d'aujourd'hui
     const formatDate = (timestamp) => {
         const date = new Date(timestamp);
@@ -187,17 +239,16 @@
                         <div class="utils">
                             <img src="/icons/star.svg" alt="star">
                             <p class="rates">{{ item.rates }}</p>
-                            <p class="sale_price" v-if="item.is_on_sale" >{{ item.is_on_sale ? '-' + Math.round(((item.price - item.sale_price) / item.price) * 100) + '%' : undefined }}</p>
+                            <p class="discount" v-if="item.is_on_sale" >{{ item.is_on_sale ? '-' + Math.round(((item.price - item.sale_price) / item.price) * 100) + '%' : undefined }}</p>
+                            <span v-if="hasWholesaleDiscount(item)" class="wholesale">(Vente en gros)</span>
                         </div>
                         <div class="details">
                             <p class="description">{{ item.details.length > 100 ? item.details.substring(0, 100) + '...' : item.details }}</p>
                             <div class="ref">
                                 <div class="number">
-                                    <p class="price">
-                                        ${{ !item.is_on_sale ? Number(item.price).toFixed(2) : Number(item.sale_price).toFixed(2) }}
-                                    </p>
+                                    <p class="price">${{ getItemPrice(item) }}</p>
                                     <p>X {{ item.number_item }}</p>
-                                    <p class="icon" @click="item.number_item++">+</p>
+                                    <p class="icon" @click="item.number_item++">+</p><p>/</p>
                                     <p class="icon" @click="item.number_item > 1 ? item.number_item-- : item.number_item = item.number_item">-</p>
                                 </div>
                                 <a :href="item.item_url" target="blank">
@@ -447,10 +498,19 @@
                                 color: style.$text-color;
                             }
 
-                            .sale_price {
-                                font-size: 15px;
+                            @mixin shared_font {
                                 font-family: style.$font-Poppins-Bold;
                                 color: style.$primary-color;
+                            }
+
+                            .discount {
+                                @include shared_font;
+                                font-size: 15px;
+                            }
+
+                            .wholesale {
+                                @include shared_font;
+                                font-size: 10px;
                             }
                         }
 
@@ -483,7 +543,7 @@
                                         color: style.$text-color;
                                     }
 
-                                    p:nth-child(2) {
+                                    p:nth-child(2), p:nth-child(4) {
                                         font-size: 12px;
                                         font-family: style.$font-Poppins-Bold;
                                         color: style.$text-color;
