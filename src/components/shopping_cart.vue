@@ -496,7 +496,7 @@
                             .id_models {
                                 width: 15px;
                                 height: 15px;
-                                font-size: 12px;
+                                font-size: 10px;
                                 font-family: style.$font-Poppins-Bold;
                                 color: style.$primary-color;
                                 border: 2px solid style.$primary-color;
