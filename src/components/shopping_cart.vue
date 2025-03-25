@@ -234,7 +234,13 @@
             </div>
             <div class="selectedProduct" v-else>
                 <div class="item" v-for="item in selectedItems" :key="item.item_id">
-                    <img class="img_product" :src="item.img_url" :alt="item.item_id">
+                    <div class="models">
+                        <div class="img_models" 
+                            :style="{ 'background-image': `url(${item.img_url})` }"
+                            :aria-label="item.item_id">
+                            <p class="id_models">1</p>
+                        </div>
+                    </div>
                     <div class="info_product">
                         <div class="utils">
                             <img src="/icons/star.svg" alt="star">
@@ -258,7 +264,7 @@
                             </div>
                         </div>
                     </div>
-                    <img src="/icons/delete.svg" alt="delete" @click="selectedItems = selectedItems.filter(id => id.item_id !== item.item_id)">
+                    <img src="/icons/delete.svg" class="removeItem" alt="delete" @click="selectedItems = selectedItems.filter(id => id.item_id !== item.item_id)">
                 </div>
             </div>
         </div>
@@ -473,11 +479,38 @@
                     margin-top: 8px;
                     gap: 5px;
 
-                    .img_product {
+                    .models {
                         width: 80px;
                         height: 80px;
-                        border-radius: 5px;
                         margin-left: 10px;
+
+                        .img_models {
+                            width: 80px;
+                            height: 80px;
+                            background-size: cover;
+                            background-position: center;
+                            background-repeat: no-repeat;
+                            position: relative;
+                            border-radius: 5px;
+
+                            .id_models {
+                                width: 15px;
+                                height: 15px;
+                                font-size: 12px;
+                                font-family: style.$font-Poppins-Bold;
+                                color: style.$primary-color;
+                                border: 2px solid style.$primary-color;
+                                border-radius: 50%;
+                                text-align: center;
+                                position: absolute;
+                                inset: 3px;
+                            }
+
+                            &:hover {
+                                cursor: pointer;
+                                box-shadow: inset 0 0 0 2px style.$primary-color;
+                            }
+                        }
                     }
 
                     .info_product{
@@ -573,7 +606,7 @@
                         }
                     }
 
-                    img:last-child {
+                    .removeItem {
                         width: 25px;
                         height: 25px;
                         background-color: style.$background-color;
