@@ -4,6 +4,7 @@
 
     const router = useRouter();
     var selectedItems = ref([]);
+    const showFullText = ref({});
     var purchaseIt = ref(false);
     var url = ref('');
 
@@ -238,7 +239,7 @@
                         <div class="img_models" 
                             :style="{ 'background-image': `url(${item.img_url})` }"
                             :aria-label="item.item_id">
-                            <p class="id_models">1</p>
+                            <img src="/icons/choose.svg" alt="choose">
                         </div>
                     </div>
                     <div class="info_product">
@@ -249,7 +250,12 @@
                             <span v-if="hasWholesaleDiscount(item)" class="wholesale">(Vente en gros)</span>
                         </div>
                         <div class="details">
-                            <p class="description">{{ item.details.length > 100 ? item.details.substring(0, 100) + '...' : item.details }}</p>
+                            <p class="description">
+                                {{ showFullText[item.item_id] ? item.details : `${item.details.substring(0, 100)}...` }}
+                                <span v-if="item.details.length > 100" class="see_more" @click="showFullText[item.item_id] = !showFullText[item.item_id]">
+                                    {{ showFullText[item.item_id] ? 'Voir moins' : 'Voir plus' }}
+                                </span>
+                            </p>
                             <div class="ref">
                                 <div class="number">
                                     <p class="price">${{ getItemPrice(item) }}</p>
@@ -264,7 +270,10 @@
                             </div>
                         </div>
                     </div>
-                    <img src="/icons/delete.svg" class="removeItem" alt="delete" @click="selectedItems = selectedItems.filter(id => id.item_id !== item.item_id)">
+                    <img src="/icons/delete.svg" class="removeItem" alt="delete"
+                        v-if="!showFullText[item.item_id]"
+                        @click="selectedItems = selectedItems.filter(id => id.item_id !== item.item_id)"
+                    >
                 </div>
             </div>
         </div>
@@ -468,7 +477,7 @@
 
                 .item {
                     width: 350px;
-                    min-height: 100px;
+                    height: fit-content;
                     display: flex;
                     flex-direction: row;
                     justify-content: center;
@@ -496,24 +505,18 @@
                             .id_models {
                                 width: 15px;
                                 height: 15px;
-                                font-size: 10px;
-                                font-family: style.$font-Poppins-Bold;
-                                color: style.$primary-color;
-                                border: 2px solid style.$primary-color;
-                                border-radius: 50%;
                                 text-align: center;
                                 position: absolute;
                                 inset: 3px;
                             }
 
-                            &:hover {
-                                cursor: pointer;
-                                box-shadow: inset 0 0 0 2px style.$primary-color;
-                            }
+                            &:hover { cursor: pointer; }
                         }
                     }
 
                     .info_product{
+                        margin: 3px 0;
+                        
                         .utils {
                             display: flex;
                             flex-direction: row;
@@ -556,6 +559,11 @@
                                 font-family: style.$font-Poppins-Bold;
                                 color: style.$text-color;
                                 width: 240px;
+
+                                .see_more {
+                                    text-decoration: underline;
+                                    &:hover { cursor: pointer; }
+                                }
                             }
 
                             .ref {
