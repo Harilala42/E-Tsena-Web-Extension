@@ -75,7 +75,6 @@
                 });
             }
         } catch (error) {
-            console.error(error);
             const errorMessage = typeof error?.message === 'string' ? error.message 
                 : typeof error === 'string' ? error : 'An unknown error occurred';
 
