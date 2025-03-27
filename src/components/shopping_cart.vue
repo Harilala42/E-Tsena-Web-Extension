@@ -29,19 +29,9 @@
 
     const totalPrice = computed(() => {
         return selectedItems.value.reduce((sum, item) => {
-            let price;
+            let info = item.order_model,
+                price = info.is_on_sale ? info.sale_price : info.price;
 
-            if (item.has_wholesale) {
-                const applicableTier = item.wholesale_tiers
-                    ?.sort((a, b) => b.min_quantity - a.min_quantity)
-                    ?.find(tier => item.number_item >= parseInt(tier.min_quantity));
-                
-                price = applicableTier 
-                    ? parseFloat(applicableTier.wholesale_price.replace(/"/g, ''))
-                    : item.is_on_sale ? item.sale_price : item.price;
-            } else
-                price = item.is_on_sale ? item.sale_price : item.price;
-            
             return sum + parseFloat(price) * item.number_item;
         }, 0).toFixed(2);
     });
@@ -65,22 +55,8 @@
 
             // Extraction des informations utiles
             const item = data.info.aliexpress_ds_product_get_response.result;
-            const skuInfo = item.ae_item_sku_info_dtos.ae_item_sku_info_d_t_o[0];
+            const skusInfo = item.ae_item_sku_info_dtos.ae_item_sku_info_d_t_o;
             const imageUrls = item.ae_multimedia_info_dto.image_urls.split(';');
-
-            // Vérification des stocks du produit
-            if (parseInt(skuInfo.sku_available_stock) <= 0)
-                throw new Error('Product is out of stock');
-
-            // Gestion des ventes en gros du produit
-            const wholesalePrice = skuInfo.wholesale_price_tiers?.length 
-                ? parseFloat(skuInfo.wholesale_price_tiers[0].wholesale_price.replace(/"/g, ''))
-                : null;
-
-            // Obtention des prix du produit
-            const basePrice = wholesalePrice || parseFloat(skuInfo.sku_price);
-            const salePrice = parseFloat(skuInfo.offer_sale_price);
-            const isOnSale = salePrice < basePrice;
 
             url.value = ''; purchaseIt.value = false;
             const existingItem = selectedItems.value.find(id => id.item_id === itemId);
@@ -90,20 +66,16 @@
                 selectedItems.value.push({
                     item_id: itemId,
                     item_url: url_buffer,
-                    price: basePrice,
                     img_url: imageUrls[0],
                     details: item.ae_item_base_info_dto.subject,
                     rates: item.ae_item_base_info_dto.avg_evaluation_rating,
-                    sale_price: salePrice,
-                    is_on_sale: isOnSale,
-                    number_item: 1,
-
-                    // Ajout des informations pour les 'whole_sale'
-                    has_wholesale: skuInfo.wholesale_price_tiers?.length > 0,
-                    wholesale_tiers: skuInfo.wholesale_price_tiers || [],
+                    sku_item: skusInfo,
+                    order_model: getInfoSku(skusInfo[0]),
+                    number_item: 1
                 });
             }
         } catch (error) {
+            console.error(error);
             const errorMessage = typeof error?.message === 'string' ? error.message 
                 : typeof error === 'string' ? error : 'An unknown error occurred';
 
@@ -128,6 +100,35 @@
                 message: userMessage
             });
         }
+    }
+
+    // Obtention des informations d'un 'sku_item'
+    const getInfoSku = (sku_item) => {
+        const price = parseFloat(sku_item.sku_price);
+        const sale_price = parseFloat(sku_item.offer_sale_price);
+
+        if (parseInt(sku_item.sku_available_stock) <= 0)
+            throw new Error('Product is out of stock');
+
+        return {
+            price: price,
+            sale_price: sale_price,
+            is_on_sale: sale_price < price
+        }
+    }
+
+    // Obtention du prix réel du produit
+    const getItemPrice = (item) => {
+        let info = item.order_model,
+            price = info.is_on_sale ? info.sale_price : info.price;
+        return Number(price).toFixed(2) || 0;
+    };
+
+    // Obtention du pourcentage de promotion du produit
+    const getDiscount = (item) => {
+        let info = item.order_model,
+            discount = info.is_on_sale ? `-${Math.round(((info.price - info.sale_price) / info.price) * 100)}%` : null;
+        return discount || undefined;
     }
 
     // Extraction du itemID de l'URL
@@ -167,31 +168,6 @@
                 }
             });
         });
-    };
-
-    // Obtention du 'real price' du produit
-    const getItemPrice = (item) => {
-        let price;
-        
-        if (item.has_wholesale) {
-            const applicableTier = item.wholesale_tiers
-                ?.sort((a, b) => b.min_quantity - a.min_quantity)
-                ?.find(tier => item.number_item >= parseInt(tier.min_quantity));
-            
-            price = applicableTier
-                ? parseFloat(applicableTier.wholesale_price?.replace(/"/g, '') || item.price)
-                : item.is_on_sale ? item.sale_price : item.price;
-        } else
-            price = item.is_on_sale ? item.sale_price : item.price;
-        
-        return Number(price).toFixed(2) || 0;
-    };
-
-    // Vérification si les ventes en gros sont en solde
-    const hasWholesaleDiscount = (item) => {
-        return item.has_wholesale && item.wholesale_tiers.some(
-            tier => item.number_item >= parseInt(tier.min_quantity)
-        );
     };
 
     // Obtention de la date d'aujourd'hui
@@ -246,8 +222,7 @@
                         <div class="utils">
                             <img src="/icons/star.svg" alt="star">
                             <p class="rates">{{ item.rates }}</p>
-                            <p class="discount" v-if="item.is_on_sale" >{{ item.is_on_sale ? '-' + Math.round(((item.price - item.sale_price) / item.price) * 100) + '%' : undefined }}</p>
-                            <span v-if="hasWholesaleDiscount(item)" class="wholesale">(Vente en gros)</span>
+                            <p class="discount" v-if="item.order_model.is_on_sale" >{{ getDiscount(item) }}</p>                        
                         </div>
                         <div class="details">
                             <p class="description">
@@ -510,6 +485,11 @@
                                 inset: 3px;
                             }
 
+                            img {
+                                width: 24px;
+                                height: 24px;
+                            }
+
                             &:hover { cursor: pointer; }
                         }
                     }
@@ -542,11 +522,6 @@
                             .discount {
                                 @include shared_font;
                                 font-size: 15px;
-                            }
-
-                            .wholesale {
-                                @include shared_font;
-                                font-size: 10px;
                             }
                         }
 
