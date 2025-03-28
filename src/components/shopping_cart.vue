@@ -6,6 +6,7 @@
     var selectedItems = ref([]);
     const showFullText = ref({});
     var purchaseIt = ref(false);
+    var item_id = ref(-1);
     var url = ref('');
 
     onMounted(() => {
@@ -57,23 +58,23 @@
             const item = data.info.aliexpress_ds_product_get_response.result;
             const skusInfo = item.ae_item_sku_info_dtos.ae_item_sku_info_d_t_o;
             const imageUrls = item.ae_multimedia_info_dto.image_urls.split(';');
+            await preloadImage(imageUrls[0]);
 
             url.value = ''; purchaseIt.value = false;
             const existingItem = selectedItems.value.find(id => id.item_id === itemId);
             if (existingItem)
                 throw new Error('Product is already in the cart');
-            else {
-                selectedItems.value.push({
-                    item_id: itemId,
-                    item_url: url_buffer,
-                    img_url: imageUrls[0],
-                    details: item.ae_item_base_info_dto.subject,
-                    rates: item.ae_item_base_info_dto.avg_evaluation_rating,
-                    sku_item: skusInfo,
-                    order_model: getInfoSku(skusInfo[0]),
-                    number_item: 1
-                });
-            }
+
+            selectedItems.value.push({
+                item_id: itemId,
+                item_url: url_buffer,
+                img_url: imageUrls[0],
+                details: item.ae_item_base_info_dto.subject,
+                rates: item.ae_item_base_info_dto.avg_evaluation_rating,
+                sku_item: skusInfo,
+                order_model: getInfoSku(skusInfo[0]),
+                number_item: 1
+            });
         } catch (error) {
             const errorMessage = typeof error?.message === 'string' ? error.message 
                 : typeof error === 'string' ? error : 'An unknown error occurred';
@@ -115,6 +116,12 @@
             is_on_sale: sale_price < price
         }
     }
+
+    // Obtention des variants du produit
+    const getVariantName = (sku_attr) => {
+        const parts = sku_attr.split('#');
+        return parts.length > 1 ? parts[1] : 'Default';
+    };
 
     // Obtention du prix réel du produit
     const getItemPrice = (item) => {
@@ -178,6 +185,16 @@
         
         return `${day}/${month}/${year}`;
     }
+
+    // Pré-chargement des images critiques
+    const preloadImage = (url) => {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.src = url;
+            img.onload = () => resolve(img);
+            img.onerror = () => reject('Failure Load Image');
+        });
+    };
 </script>
 
 <template>
@@ -209,12 +226,12 @@
                     <p class="message">Le panier est vide.</p>
             </div>
             <div class="selectedProduct" v-else>
-                <div class="item" v-for="item in selectedItems" :key="item.item_id">
-                    <div class="models">
+                <div class="item" v-for="item in selectedItems" :key="selectedItems.indexOf(item)">
+                    <div class="models" @click="item_id = selectedItems.indexOf(item)">
                         <div class="img_models" 
-                            :style="{ 'background-image': `url(${item.img_url})` }"
+                            :style="{ 'background-image': item.img_url ? `url('${item.img_url}')` : 'none' }"
                             :aria-label="item.item_id">
-                            <img src="/icons/choose.svg" alt="choose">
+                            <img src="/icons/choose.svg" alt="choose" title="Choisir une option">
                         </div>
                     </div>
                     <div class="info_product">
@@ -225,7 +242,11 @@
                         </div>
                         <div class="details">
                             <p class="description">
-                                {{ showFullText[item.item_id] ? item.details : `${item.details.substring(0, 100)}...` }}
+                                {{
+                                    showFullText[item.item_id] ? 
+                                        item.details : 
+                                        `${item.details.substring(0, 100)}${(item.details.length > 100 && !showFullText[item.item_id]) ? '...' : null}`
+                                }}
                                 <span v-if="item.details.length > 100" class="see_more" @click="showFullText[item.item_id] = !showFullText[item.item_id]">
                                     {{ showFullText[item.item_id] ? 'Voir moins' : 'Voir plus' }}
                                 </span>
@@ -267,6 +288,14 @@
             </div>
             <div class="horizontal-bar"></div>
         </div>
+        <div class="sku_item" v-if="item_id >= 0">
+            <div class="sku_id" 
+                v-for="sku in selectedItems[item_id].sku_item"
+                :key="selectedItems[item_id].sku_item.indexOf(sku)"
+            >
+                <p class="sku"> {{ getVariantName(sku.id) }} </p>
+            </div>
+        </div>
     </div>
 </template>
 
@@ -278,6 +307,7 @@
         flex-direction: column;
         justify-content: center;
         align-items: center;
+        position: relative;
         background-color: style.$background-color;
         padding: 30px 0;
         min-width: 400px;
@@ -440,18 +470,18 @@
 
             .selectedProduct {
                 width: 400px;
-                height: 350px;
+                min-height: 355px;
+                max-height: 355px;
                 display: flex;
                 flex-direction: column;
                 align-items: center;
                 overflow-y: auto;
                 overflow-x: hidden;
                 transition: max-height 0.8s ease;
-                gap: 10px;
+                gap: 5px;
 
                 .item {
                     width: 350px;
-                    height: fit-content;
                     display: flex;
                     flex-direction: row;
                     justify-content: center;
@@ -460,6 +490,7 @@
                     border: 1px solid style.$primary-color;
                     border-radius: 15px;
                     margin-top: 8px;
+                    padding: 5px 0;
                     gap: 5px;
 
                     .models {
@@ -494,8 +525,6 @@
                     }
 
                     .info_product{
-                        margin: 3px 0;
-                        
                         .utils {
                             display: flex;
                             flex-direction: row;
@@ -594,7 +623,7 @@
                         background-color: style.$background-color;
                         position: absolute;
                         z-index: 0;
-                        top: -14%;
+                        top: -12.5%;
                         left: 90%;
 
                         &:hover { cursor: pointer; }
@@ -690,6 +719,21 @@
 
                     &:hover { cursor: pointer; }
                 }
+            }
+        }
+
+        .sku_item {
+            width: 100%;
+            height: 100%;
+            overflow-y: auto;
+            position: absolute;
+            background-color: rgba(style.$secondary-color, 0.5);
+            z-index: 1;
+
+            .sku_id {
+                color: style.$text-color;
+                font-family: style.$font-Poppins-Bold;
+                font-size: 15px;
             }
         }
     }
