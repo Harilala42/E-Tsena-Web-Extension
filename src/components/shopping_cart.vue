@@ -119,8 +119,9 @@
 
     // Obtention des variants du produit
     const getVariantName = (sku_attr) => {
-        const parts = sku_attr.split('#');
-        return parts.length > 1 ? parts[1] : 'Default';
+        let parts = null;
+        if (sku_attr) parts = sku_attr.split('#');
+        return parts ? parts.length > 1 ? parts[1] : 'Default' : 'Default';
     };
 
     // Obtention du prix réel du produit
