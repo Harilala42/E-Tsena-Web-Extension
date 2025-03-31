@@ -73,7 +73,9 @@
                 rates: item.ae_item_base_info_dto.avg_evaluation_rating,
                 sku_item: skusInfo,
                 order_model: getInfoSku(skusInfo[0]),
-                number_item: 1
+                selectedSkuIndex: 0,
+                number_item: 1,
+                time_order: Date.now()
             });
         } catch (error) {
             const errorMessage = typeof error?.message === 'string' ? error.message 
@@ -106,14 +108,16 @@
     const getInfoSku = (sku_item) => {
         const price = parseFloat(sku_item.sku_price);
         const sale_price = parseFloat(sku_item.offer_sale_price);
+        const stock = parseInt(sku_item.sku_available_stock);
 
-        if (parseInt(sku_item.sku_available_stock) <= 0)
+        if (stock <= 0)
             throw new Error('Product is out of stock');
 
         return {
             price: price,
             sale_price: sale_price,
-            is_on_sale: sale_price < price
+            is_on_sale: sale_price < price,
+            currentStock: stock
         }
     }
 
@@ -136,6 +140,47 @@
         let info = item.order_model,
             discount = info.is_on_sale ? `-${Math.round(((info.price - info.sale_price) / info.price) * 100)}%` : null;
         return discount || undefined;
+    }
+
+    const chooseModel = (sku, id) => {
+        selectedItems.value[id].order_model = getInfoSku(selectedItems.value[id].sku_item[sku]);
+        selectedItems.value[id].selectedSkuIndex = sku;
+        selectedItems.value[id].number_item = 1;
+        item_id.value = -1;
+    }
+
+    // Vérification des stocks disponibles
+    const enoughStock = async (id) => {
+        const item = selectedItems.value[id];
+        const currentStock = item.order_model.currentStock;
+        const currentNumber = selectedItems.value[id].number_item;
+    
+        if (currentNumber + 1 > currentStock) {
+            try {
+                const response = await fetch(item.img_url);
+                const blob = await response.blob();
+                
+                // Convertion en data URL
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    chrome.notifications.create("stockWarning", {
+                        type: "basic",
+                        iconUrl: reader.result,
+                        title: "❌ Stock insuffisant ❌",
+                        message: `Only ${currentStock} items available in stock`
+                    });
+                };
+                reader.readAsDataURL(blob);
+            } catch (error) {
+                chrome.notifications.create("stockWarning", {
+                    type: "basic",
+                    iconUrl: "/icons/warning.svg",
+                    title: "❌ Stock insuffisant ❌",
+                    message: `Only ${currentStock} items available in stock`
+                });
+            }
+        } else
+            selectedItems.value[id].number_item++;
     }
 
     // Extraction du itemID de l'URL
@@ -256,7 +301,7 @@
                                 <div class="number">
                                     <p class="price">${{ getItemPrice(item) }}</p>
                                     <p>X {{ item.number_item }}</p>
-                                    <p class="icon" @click="item.number_item++">+</p><p>/</p>
+                                    <p class="icon" @click="enoughStock(selectedItems.indexOf(item))">+</p><p>/</p>
                                     <p class="icon" @click="item.number_item > 1 ? item.number_item-- : item.number_item = item.number_item">-</p>
                                 </div>
                                 <a :href="item.item_url" target="blank">
@@ -290,11 +335,20 @@
             <div class="horizontal-bar"></div>
         </div>
         <div class="sku_item" v-if="item_id >= 0">
-            <div class="sku_id" 
+            <div class="sku_id"
+                :class="{ 'disabled_option': sku.sku_available_stock <= 0 }"
                 v-for="sku in selectedItems[item_id].sku_item"
                 :key="selectedItems[item_id].sku_item.indexOf(sku)"
+                @click="chooseModel(selectedItems[item_id].sku_item.indexOf(sku), item_id)"
             >
-                <p class="sku"> {{ getVariantName(sku.id) }} </p>
+                <p class="sku">{{ getVariantName(sku.id) }}</p>
+                <img src="/icons/check_circle.svg" 
+                    v-if="selectedItems[item_id].sku_item.indexOf(sku) === selectedItems[item_id].selectedSkuIndex" 
+                    alt="choice"
+                >
+            </div>
+            <div class="close_win" @click="item_id = -1">
+                <img src="/icons/close.svg" alt="close">
             </div>
         </div>
     </div>
@@ -724,17 +778,54 @@
         }
 
         .sku_item {
-            width: 100%;
-            height: 100%;
+            width: 80%;
+            max-height: 80%;
             overflow-y: auto;
-            position: absolute;
-            background-color: rgba(style.$secondary-color, 0.5);
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(style.$secondary-color, 0.9);
+            border-radius: 15px;
+            padding: 20px;
             z-index: 1;
 
             .sku_id {
+                display: flex;
+                flex-direction: row;
+                width: fit-content;
+                text-align: center;
                 color: style.$text-color;
                 font-family: style.$font-Poppins-Bold;
                 font-size: 15px;
+                gap: 5px;
+
+                &:hover { cursor: pointer; }
+            }
+
+            .disabled_option {
+                pointer-events: none;
+                text-decoration: line-through solid style.$primary-color 2px;
+            }
+            
+            .close_win {
+                width: 50px;
+                height: 50px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background-color: rgba(style.$primary-color, 0.75);
+                border-bottom-left-radius: 15px;
+                position: fixed;
+                top: 0;
+                right: 0;
+
+                img {
+                    width: 40px;
+                    height: 40px;
+                }
+
+                &:hover { cursor: pointer; }
             }
         }
     }
