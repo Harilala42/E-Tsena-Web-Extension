@@ -786,7 +786,8 @@
             left: 50%;
             transform: translate(-50%, -50%);
             background-color: rgba(style.$secondary-color, 0.9);
-            border-radius: 15px;
+            border-top-left-radius: 15px;
+            border-bottom-left-radius: 15px;
             padding: 20px;
             z-index: 1;
 
