@@ -91,7 +91,6 @@ chrome.alarms.onAlarm.addListener((alarm) => {
     }
 });
 
-
 // Vérification si le JWT a besoin d'un refresh
 const isJWPRefreshed = async () => {
     chrome.storage.local.get(['jwt'], async (result) => {
