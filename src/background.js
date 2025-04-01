@@ -39,8 +39,9 @@ chrome.notifications.onButtonClicked.addListener((notifId, btnIdx) => {
     }
 });
 
+// Mise à jour des informations du 'shopping cart'
 chrome.alarms.onAlarm.addListener((alarm) => {
-    if (alarm.name === 'updateCart') { // Mise à jour du 'shopping cart'
+    if (alarm.name === 'updateCart') {
         chrome.storage.local.get(['cart', 'jwt'], async (result) => {
             if (result.cart && result.jwt) {
                 const { token } = result.jwt;
@@ -87,31 +88,6 @@ chrome.alarms.onAlarm.addListener((alarm) => {
                 await chrome.storage.local.set({ cart: JSON.stringify(cartData) });
             }
         });
-    } else if (alarm.name === 'checkTokens') { // Cycle de vie d'un token JWT
-        chrome.storage.local.get(['isAlreadyRefreshed', 'isAlreadyAuthorize'],
-            async (result) => {
-                if (result.isAlreadyRefreshed === 'no')
-                    await isJWPRefreshed();
-                else if (result.isAlreadyRefreshed === 'yes')
-                    await isJWPExpired();
-        
-                switch (result.isAlreadyAuthorize) {
-                    case 'denied':
-                        return console.warn("Token didn't find");
-                    case 'no':
-                        await generationAccessToken();
-                    break;
-                    case 'yes':
-                        await needRefreshToken();
-                    break;
-                    case 'refresh':
-                        await needNewAccessToken();
-                    break;
-                    default:
-                        console.error('Invalid value');
-                }
-            }
-        );
     }
 });
 
@@ -242,5 +218,33 @@ const needNewAccessToken = async () => {
     });
 }
 
+// Cycle de vie d'un token JWT
+const checkTokens = () => {
+    chrome.storage.local.get(['isAlreadyRefreshed', 'isAlreadyAuthorize'],
+        async (result) => {
+            if (result.isAlreadyRefreshed === 'no')
+                await isJWPRefreshed();
+            else if (result.isAlreadyRefreshed === 'yes')
+                await isJWPExpired();
+
+            switch (result.isAlreadyAuthorize) {
+                case 'denied':
+                    return console.warn("Token didn't find");
+                case 'no':
+                    await generationAccessToken();
+                break;
+                case 'yes':
+                    await needRefreshToken();
+                break;
+                case 'refresh':
+                    await needNewAccessToken();
+                break;
+                default:
+                    console.error('Invalid value');
+            }
+        }
+    );
+};
+
 chrome.alarms.create('updateCart', { periodInMinutes: 15 });
-chrome.alarms.create('checkTokens', { periodInMinutes: 5 });
+setInterval(checkTokens, 5 * 60 * 1000);
