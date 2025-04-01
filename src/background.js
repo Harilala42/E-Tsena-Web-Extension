@@ -39,6 +39,59 @@ chrome.notifications.onButtonClicked.addListener((notifId, btnIdx) => {
     }
 });
 
+// Mise à jour des informations du 'shopping cart'
+chrome.alarms.onAlarm.addListener((alarm) => {
+    if (alarm.name === 'updateCart') {
+        chrome.storage.local.get(['cart', 'jwt'], async (result) => {
+            if (result.cart && result.jwt) {
+                const { token } = result.jwt;
+                const cartData = await JSON.parse(result.cart);
+                
+                const updatePromises = cartData.map(async (item, id) => {
+                    try {
+                        const response = await fetch(import.meta.env.VITE_URL_INFOPRODUCT_AE, {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': `Bearer ${token}`,
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ itemId: item.item_id })
+                        });
+
+                        if (!response.ok)
+                            return console.error(`HTTP error! status: ${response.status}`);
+
+                        const data = await response.json();
+
+                        const updatedItem = data.info.aliexpress_ds_product_get_response.result;
+                        const skusInfo = updatedItem.ae_item_sku_info_dtos.ae_item_sku_info_d_t_o;
+                        const price = parseFloat(skusInfo[item.selectedSkuIndex].sku_price);
+                        const sale_price = parseFloat(skusInfo[item.selectedSkuIndex].offer_sale_price);
+                        const stock = parseInt(skusInfo[item.selectedSkuIndex].sku_available_stock);
+
+                        if (stock <= 0) {
+                            cartData.splice(id, 1);
+                        } else {
+                            item.order_model = {
+                                price: price,
+                                sale_price: sale_price,
+                                is_on_sale: sale_price < price,
+                                currentStock: stock
+                            };
+                        }
+                    } catch (error) {
+                        console.error(`Failed to update item ${item.item_id}:`, error);
+                    }
+                });
+
+                await Promise.all(updatePromises);
+                await chrome.storage.local.set({ cart: JSON.stringify(cartData) });
+            }
+        });
+    }
+});
+
+
 // Vérification si le JWT a besoin d'un refresh
 const isJWPRefreshed = async () => {
     chrome.storage.local.get(['jwt'], async (result) => {
@@ -192,4 +245,5 @@ const checkTokens = () => {
     });
 };
 
+chrome.alarms.create('updateCart', { periodInMinutes: 15 });
 setInterval(checkTokens, 5 * 60 * 1000);

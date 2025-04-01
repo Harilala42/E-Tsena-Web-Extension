@@ -15,7 +15,8 @@
     "permissions": [
         "identity",
         "notifications",
-        "storage"
+        "storage",
+        "alarms"
     ],
     "host_permissions": [
         "https://fr.aliexpress.com/*",

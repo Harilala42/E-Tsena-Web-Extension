@@ -10,12 +10,19 @@
     var url = ref('');
 
     onMounted(() => {
-        chrome.storage.local.get(['cart'], async (result) => {
-            let cartData = [];
+        let cartData = [];
 
+        chrome.storage.local.get(['cart'], async (result) => {
             if (result.cart) {
                 cartData = await JSON.parse(result.cart);
                 selectedItems.value = cartData;
+            }
+        });
+        chrome.storage.onChanged.addListener(async (details) => {
+            if (details.cart) {
+                cartData = await JSON.parse(details.cart.newValue);
+                selectedItems.value = cartData;
+                console.log('Cart Updated');
             }
         });
     });
@@ -74,8 +81,7 @@
                 sku_item: skusInfo,
                 order_model: getInfoSku(skusInfo[0]),
                 selectedSkuIndex: 0,
-                number_item: 1,
-                time_order: Date.now()
+                number_item: 1
             });
         } catch (error) {
             const errorMessage = typeof error?.message === 'string' ? error.message 
@@ -142,6 +148,7 @@
         return discount || undefined;
     }
 
+    // Obtention d'un model spécifique du produit
     const chooseModel = (sku, id) => {
         selectedItems.value[id].order_model = getInfoSku(selectedItems.value[id].sku_item[sku]);
         selectedItems.value[id].selectedSkuIndex = sku;
@@ -284,7 +291,8 @@
                         <div class="utils">
                             <img src="/icons/star.svg" alt="star">
                             <p class="rates">{{ item.rates }}</p>
-                            <p class="discount" v-if="item.order_model.is_on_sale" >{{ getDiscount(item) }}</p>                        
+                            <p class="discount" v-if="item.order_model.is_on_sale" >{{ getDiscount(item) }}</p>  
+                            <p class="stock">({{ item.order_model.currentStock }} en stock)</p>     
                         </div>
                         <div class="details">
                             <p class="description">
@@ -606,6 +614,11 @@
                                 @include shared_font;
                                 font-size: 15px;
                             }
+
+                            .stock {
+                                @include shared_font;
+                                font-size: 12px;
+                            }
                         }
 
                         .details {
@@ -781,7 +794,7 @@
             width: 80%;
             max-height: 80%;
             overflow-y: auto;
-            position: fixed;
+            position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
