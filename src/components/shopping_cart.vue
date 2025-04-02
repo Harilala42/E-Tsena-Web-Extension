@@ -335,13 +335,6 @@
             </div>
             <button :class="{'buyIt': selectedItems.length !== 0, 'disabled-buyIt': selectedItems.length === 0 }" :disabled="selectedItems.length === 0">Acheter</button>
         </div>
-        <div class="social_media">
-            <div class="icon_social">
-                <a href="" target="blank"><img src="/icons/facebook.svg" alt="facebook"></a>
-                <a href="" target="blank"><img src="/icons/whatsapp.svg" alt="whatsapp"></a>
-            </div>
-            <div class="horizontal-bar"></div>
-        </div>
         <div class="sku_item" v-if="item_id >= 0">
             <div class="sku_id"
                 :class="{ 'disabled_option': sku.sku_available_stock <= 0 }"
@@ -358,6 +351,13 @@
             <div class="close_win" @click="item_id = -1">
                 <img src="/icons/close.svg" alt="close">
             </div>
+        </div>
+        <div class="social_media">
+            <div class="icon_social">
+                <a href="" target="blank"><img src="/icons/facebook.svg" alt="facebook"></a>
+                <a href="" target="blank"><img src="/icons/whatsapp.svg" alt="whatsapp"></a>
+            </div>
+            <div class="horizontal-bar"></div>
         </div>
     </div>
 </template>
@@ -763,33 +763,6 @@
             }
         }
 
-        .social_media {
-            display: flex;
-            flex-direction: row;
-            justify-content: center;
-            align-items: center;
-            position: relative;
-            
-            .icon_social {
-                display: flex;
-                flex-direction: row;
-                position: absolute;
-                justify-content: center;
-                background-color: style.$background-color;
-                width: 80px;
-                height: 30px;
-                z-index: 1;
-                gap: 10px;
-
-                a img {
-                    width: 24px;
-                    height: 24px;
-
-                    &:hover { cursor: pointer; }
-                }
-            }
-        }
-
         .sku_item {
             width: 80%;
             max-height: 80%;
@@ -802,7 +775,7 @@
             border-top-left-radius: 15px;
             border-bottom-left-radius: 15px;
             padding: 20px;
-            z-index: 1;
+            z-index: 10;
 
             .sku_id {
                 display: flex;
@@ -840,6 +813,33 @@
                 }
 
                 &:hover { cursor: pointer; }
+            }
+        }
+
+        .social_media {
+            display: flex;
+            flex-direction: row;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            
+            .icon_social {
+                display: flex;
+                flex-direction: row;
+                position: absolute;
+                justify-content: center;
+                background-color: style.$background-color;
+                width: 80px;
+                height: 30px;
+                z-index: 1;
+                gap: 10px;
+
+                a img {
+                    width: 24px;
+                    height: 24px;
+
+                    &:hover { cursor: pointer; }
+                }
             }
         }
     }
