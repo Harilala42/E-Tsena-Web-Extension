@@ -675,15 +675,16 @@
                                 a {
                                     display: flex;
                                     flex-direction: row;
+                                    align-items: center;
                                     font-family: style.$font-Poppins-Regular;
-                                    font-size: 10px;
+                                    font-size: 12px;
                                     color: style.$text-color;
                                     margin-right: 5px;
-                                    gap: 5px;
+                                    gap: 3px;
 
                                     img {
-                                        width: 15px;
-                                        height: 15px;
+                                        width: 20px;
+                                        height: 20px;
                                     }
                                 }
                             }
