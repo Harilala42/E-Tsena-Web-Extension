@@ -677,14 +677,14 @@
                                     flex-direction: row;
                                     align-items: center;
                                     font-family: style.$font-Poppins-Regular;
-                                    font-size: 12px;
+                                    font-size: 10px;
                                     color: style.$text-color;
                                     margin-right: 5px;
                                     gap: 3px;
 
                                     img {
-                                        width: 20px;
-                                        height: 20px;
+                                        width: 18px;
+                                        height: 18px;
                                     }
                                 }
                             }
