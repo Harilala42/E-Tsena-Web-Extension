@@ -90,11 +90,11 @@
             let userMessage = 'An unexpected error occurred';
             
             if (error.response?.status === 404)
-                userMessage = 'Le produit recherché est introuvable 😓.';
+                userMessage = 'Un problème est survenu lors de la recherche 😓.';
             else if (errorMessage.includes('out of stock'))
                 userMessage = 'Le produit est en rupture de stock 😓.';
             else if (errorMessage.includes('already in the cart'))
-                userMessage = 'Le produit est déjà présent 😅.';
+                userMessage = 'Le produit est déjà dans le panier 😅.';
             else if (errorMessage.includes('Invalid domain'))
                 userMessage = 'Veuillez fournir un URL AliExpress valide 😓.';
             else if (errorMessage.includes('No ID item') || url.value)
