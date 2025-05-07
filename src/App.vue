@@ -1,12 +1,15 @@
 <script setup>
     import { ref, onMounted } from 'vue';
     import { useRouter } from 'vue-router';
+    import Layout from './components/layout.vue'
 
     const router = useRouter();
     var showAuthentication = ref(true);
     var statusAuth = ref('');
 
     onMounted(() => {
+        chrome.storage.local.set({ 'e_tsena_state': '' });
+
         chrome.storage.local.get(['isAlreadyAuthorize'], (result) => {
             checkStatusAuth(result.isAlreadyAuthorize);
             if (!showAuthentication.value)
@@ -130,8 +133,8 @@
 </script>
 
 <template>
-    <div v-if="showAuthentication" class="container">
-        <img src="/icons/e-tsena_lg.png" alt="brand" class="brand">
+    <div v-if="showAuthentication" class="auth">
+        <img src="/icons/e-tsena_lg_v.png" alt="brand" class="brand">
         <div class="login">
             <img src="/icons/login.svg" alt="login">
             <h1>login</h1>
@@ -149,13 +152,15 @@
         </div>
         <p class="slogan">Aliexpress à portée de <span class="cta">clic</span>!</p>
     </div>
-    <router-view v-else/>
+    <Layout v-else>
+        <router-view />
+    </Layout>
 </template>
 
 <style scoped lang="scss">
     @use 'style';
 
-    .container {
+    .auth {
         display: flex;
         flex-direction: column;
         justify-content: center;

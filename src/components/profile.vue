@@ -2,7 +2,7 @@
     import { ref, onMounted } from 'vue';
 
     onMounted(() => {
-        chrome.storage.local.set({ 'e_tsena_state': 'order-tracking' });
+        chrome.storage.local.set({ 'e_tsena_state': 'profile' });
     });
 </script>
 
@@ -10,8 +10,8 @@
     <div class="container">
         <div class="title">
             <div class="icon-title">
-                <img src="/icons/clock.svg" alt="clock">
-                <h1 class="text">Suivi de Commande</h1>
+                <img src="/icons/person.svg" alt="profile">
+                <h1 class="text">Profile</h1>
             </div>
         </div>
         <div class="horizontal-bar"></div>

@@ -4,7 +4,11 @@
 }
 
 html, body {
-    overflow: auto
+    min-width: 400px;
+    min-height: 500px;
+    max-height: 750px;
+    background-color: #3A003D;
+    overflow: auto;
 }
 
 @font-face {

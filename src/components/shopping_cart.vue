@@ -1,16 +1,19 @@
 <script setup>
     import { ref, computed, onMounted, watch } from 'vue';
-    import { useRouter } from 'vue-router';
+    import ReviewItem from './review_order.vue'
 
-    const router = useRouter();
     var selectedItems = ref([]);
     const showFullText = ref({});
     var purchaseIt = ref(false);
+    var addItem = ref(false);
     var item_id = ref(-1);
+    var price_id = ref(0);
     var url = ref('');
 
     onMounted(() => {
         let cartData = [];
+
+        chrome.storage.local.set({ 'e_tsena_state': 'shopping-cart' });
 
         chrome.storage.local.get(['cart'], async (result) => {
             if (result.cart) {
@@ -23,11 +26,19 @@
                 cartData = await JSON.parse(details.cart.newValue);
                 selectedItems.value = cartData;
                 console.log('Cart Updated');
-            }
+            } else if (details.purchaseIt)
+                purchaseIt.value = details.purchaseIt.newValue;
         });
     });
 
+    watch(purchaseIt, (newVal) => {
+        chrome.storage.local.set({ 'purchaseIt': newVal });
+    });
+
     watch(selectedItems, (newVal) => {
+        if (newVal[price_id.value].number_item === selectedItems.value[price_id.value].number_item)
+            selectedItems.value[price_id.value].number_item = numberItem(newVal[price_id.value]);
+
         chrome.storage.local.set({ cart: JSON.stringify(newVal) });
     }, { deep: true });
 
@@ -53,7 +64,7 @@
 
             const itemId = await extractItemID(url_buffer);
             console.log(`ID Item: ${itemId}`);
-            purchaseIt.value = true;
+            addItem.value = true;
 
             const response = await sendIdToServer(itemId);
             if (!response.ok)
@@ -67,7 +78,7 @@
             const imageUrls = item.ae_multimedia_info_dto.image_urls.split(';');
             await preloadImage(imageUrls[0]);
 
-            url.value = ''; purchaseIt.value = false;
+            url.value = ''; addItem.value = false;
             const existingItem = selectedItems.value.find(id => id.item_id === itemId);
             if (existingItem)
                 throw new Error('Product is already in the cart');
@@ -89,7 +100,7 @@
 
             let userMessage = 'An unexpected error occurred';
             
-            if (error.response?.status === 404)
+            if (error.response?.status === 404 || !error.response?.ok)
                 userMessage = 'Un problème est survenu lors de la recherche 😓.';
             else if (errorMessage.includes('out of stock'))
                 userMessage = 'Le produit est en rupture de stock 😓.';
@@ -100,7 +111,7 @@
             else if (errorMessage.includes('No ID item') || url.value)
                 userMessage = 'Impossible d\'identifier le produit 😓.';
             
-            url.value = ''; purchaseIt.value = false;
+            url.value = ''; addItem.value = false;
             chrome.notifications.create("failureGetItem", {
                 type: "basic",
                 iconUrl: "/icons/warning.svg",
@@ -131,10 +142,14 @@
     const getVariantName = (sku_attr) => {
         if (!sku_attr) return 'Default';
 
-        const variants = sku_attr.split(';');
-        const variantNames = variants.map(variant => {
-            const parts = variant.split('#');
-            return parts[1] ? parts[1] : '';
+        const variants = sku_attr.ae_sku_property_d_t_o;
+        let variantNames = [];
+
+        variants.forEach(id => {
+            if (id.property_value_definition_name)
+                variantNames.push(id.property_value_definition_name);
+            else
+                variantNames.push(id.sku_property_value);
         });
         return variantNames.join(' ') || 'Default';
     };
@@ -161,11 +176,23 @@
         item_id.value = -1;
     }
 
+    // Vérification du nombre de commande possible
+    const numberItem = (item) => {
+        const currentStock = item.order_model.currentStock;
+        let currentNumber = item.number_item;
+
+        if (currentNumber < 1)
+            currentNumber = 1;
+        else if (currentNumber > currentStock)
+            currentNumber = currentStock;
+        return currentNumber;
+    }
+
     // Vérification des stocks disponibles
     const enoughStock = async (id) => {
         const item = selectedItems.value[id];
         const currentStock = item.order_model.currentStock;
-        const currentNumber = selectedItems.value[id].number_item;
+        const currentNumber = item.number_item;
     
         if (currentNumber + 1 > currentStock) {
             try {
@@ -274,22 +301,25 @@
                 <input type="text" placeholder="Collez votre url ici" v-model="url" :value="truncatedUrl">
                 <div class="btnSearch">
                     <img src="/icons/close_search.svg" v-if="url !== ''" alt="cart" @click="url = ''">
-                    <button :class="{ 'addItem': !purchaseIt, 'disabledAddItem': purchaseIt }" :disabled="purchaseIt" @click="getProductInfo">
+                    <button @click="getProductInfo"
+                        :class="{ 'addItem': !purchaseIt || !addItem, 'disabledAddItem': purchaseIt || addItem }" 
+                        :disabled="purchaseIt || addItem"
+                    >
                         <img src="/icons/paste.svg" alt="cart"><p>Ajouter</p>
                     </button>
                 </div>
             </div>
             <div class="empty_cart" v-if="selectedItems.length == 0">
-                    <img src="/icons/empty_cart.png" alt="empty cart">
-                    <p class="message">Le panier est vide.</p>
+                <img src="/icons/empty_cart.png" alt="empty cart">
+                <p class="message">Le panier est vide.</p>
             </div>
             <div class="selectedProduct" v-else>
                 <div class="item" v-for="item in selectedItems" :key="selectedItems.indexOf(item)">
-                    <div class="models" @click="item_id = selectedItems.indexOf(item)">
-                        <div class="img_models" 
+                    <div class="models" @click="!purchaseIt ? item_id = selectedItems.indexOf(item) : item_id = -1">
+                        <div :class="{ 'img_models_shown': !purchaseIt, 'img_models_hidden': purchaseIt }" 
                             :style="{ 'background-image': item.img_url ? `url('${item.img_url}')` : 'none' }"
                             :aria-label="item.item_id">
-                            <img src="/icons/choose.svg" alt="choose" title="Choisir une option">
+                            <img src="/icons/choose.svg" v-if="!purchaseIt" alt="choose" title="Choisir une option">
                         </div>
                     </div>
                     <div class="info_product">
@@ -312,10 +342,15 @@
                             </p>
                             <div class="ref">
                                 <div class="number">
-                                    <p class="price">${{ getItemPrice(item) }}</p>
-                                    <p>X {{ item.number_item }}</p>
-                                    <p class="icon" @click="enoughStock(selectedItems.indexOf(item))">+</p><p>/</p>
-                                    <p class="icon" @click="item.number_item > 1 ? item.number_item-- : item.number_item = item.number_item">-</p>
+                                    <p class="price">${{ getItemPrice(item) }}</p><p>X</p>
+                                    <div class="nb_item">
+                                        <p :class="{ 'nb_display': !purchaseIt }">{{ item.number_item }}</p>
+                                        <input type="number" class="nb_input" v-if="!purchaseIt" v-model="item.number_item" :value="numberItem(item)" @input="price_id = selectedItems.indexOf(item)">
+                                    </div>
+                                    <div class="ajust_nb" v-if="!purchaseIt">
+                                        <button class="icon" @click="enoughStock(selectedItems.indexOf(item))">+</button><p>/</p>
+                                        <button class="icon" @click="item.number_item > 1 ? item.number_item-- : item.number_item = item.number_item">-</button>
+                                    </div>
                                 </div>
                                 <a :href="item.item_url" target="blank">
                                     <img src="/icons/link.svg" alt="link">
@@ -325,21 +360,28 @@
                         </div>
                     </div>
                     <img src="/icons/delete.svg" class="removeItem" alt="delete"
-                        v-if="!showFullText[item.item_id]"
+                        v-if="!showFullText[item.item_id] && !purchaseIt"
                         @click="selectedItems = selectedItems.filter(id => id.item_id !== item.item_id)"
                     >
                 </div>
             </div>
         </div>
         <div class="horizontal-bar"></div>
-        <div class="review">
+        <div class="review" v-if="!purchaseIt">
             <div class="total">
                 <p>Total :</p>
-                <p class="total_price">${{ totalPrice }} +</p>
+                <p class="total_price">${{ totalPrice }}</p>
+                <p class="total_price">+</p>
                 <p class="txt_utils">15% de<br> commission</p>
             </div>
-            <button :class="{'buyIt': selectedItems.length !== 0, 'disabled-buyIt': selectedItems.length === 0 }" :disabled="selectedItems.length === 0">Acheter</button>
+            <button 
+                :class="{'buyIt': selectedItems.length !== 0, 'disabled-buyIt': selectedItems.length === 0 }" 
+                :disabled="selectedItems.length === 0"
+                @click="purchaseIt = !purchaseIt"
+            ><p>Acheter</p>
+            </button>
         </div>
+        <ReviewItem v-else></ReviewItem>
         <div class="sku_item" v-if="item_id >= 0">
             <div class="sku_id"
                 :class="{ 'disabled_option': sku.sku_available_stock <= 0 }"
@@ -347,22 +389,17 @@
                 :key="selectedItems[item_id].sku_item.indexOf(sku)"
                 @click="chooseModel(selectedItems[item_id].sku_item.indexOf(sku), item_id)"
             >
-                <p class="sku">{{ getVariantName(sku.id) }}</p>
-                <img src="/icons/check_circle.svg" 
-                    v-if="selectedItems[item_id].sku_item.indexOf(sku) === selectedItems[item_id].selectedSkuIndex" 
-                    alt="choice"
-                >
+                <p class="sku">
+                    {{ getVariantName(sku.ae_sku_property_dtos) }}
+                    <img src="/icons/check_circle.svg" 
+                        v-if="selectedItems[item_id].sku_item.indexOf(sku) === selectedItems[item_id].selectedSkuIndex" 
+                        alt="choice"
+                    >
+                </p>
             </div>
             <div class="close_win" @click="item_id = -1">
                 <img src="/icons/close.svg" alt="close">
             </div>
-        </div>
-        <div class="social_media">
-            <div class="icon_social">
-                <a href="" target="blank"><img src="/icons/facebook.svg" alt="facebook"></a>
-                <a href="" target="blank"><img src="/icons/whatsapp.svg" alt="whatsapp"></a>
-            </div>
-            <div class="horizontal-bar"></div>
         </div>
     </div>
 </template>
@@ -377,9 +414,10 @@
         align-items: center;
         position: relative;
         background-color: style.$background-color;
-        padding: 30px 0;
         min-width: 400px;
         min-height: 500px;
+        max-height: 650px;
+        padding: 0;
 
         .title {
             display: flex;
@@ -469,7 +507,6 @@
                         box-shadow: none;
                     }
                 }
-
 
                 .btnSearch {
                     display: flex;
@@ -566,7 +603,7 @@
                         height: 80px;
                         margin-left: 10px;
 
-                        .img_models {
+                        @mixin img_models {
                             width: 80px;
                             height: 80px;
                             background-size: cover;
@@ -574,6 +611,15 @@
                             background-repeat: no-repeat;
                             position: relative;
                             border-radius: 5px;
+
+                            img {
+                                width: 24px;
+                                height: 24px;
+                            }
+                        }
+
+                        .img_models_shown {
+                            @include img_models;
 
                             .id_models {
                                 width: 15px;
@@ -583,13 +629,10 @@
                                 inset: 3px;
                             }
 
-                            img {
-                                width: 24px;
-                                height: 24px;
-                            }
-
                             &:hover { cursor: pointer; }
                         }
+
+                        .img_models_hidden { @include img_models; }
                     }
 
                     .info_product{
@@ -660,15 +703,59 @@
                                         color: style.$text-color;
                                     }
 
-                                    p:nth-child(2), p:nth-child(4) {
+                                    @mixin shared_number {
                                         font-size: 12px;
                                         font-family: style.$font-Poppins-Bold;
                                         color: style.$text-color;
                                     }
 
-                                    .icon {
-                                        margin-left: 2px;
-                                        &:hover { cursor: pointer; }
+                                    p { @include shared_number; }
+
+                                    .nb_item {
+                                        @include shared_number;
+                                        overflow: hidden;
+                                        transition: width 2.5s ease;
+                                        display: flex;
+                                        gap: 3px;
+
+                                        .nb_input { display: none; }
+
+                                        &:hover {
+                                            .nb_display { display: none; }
+
+                                            input[type="number"] {
+                                                width: 30px;
+                                                border: none;
+                                                display: flex;
+                                                background-color: transparent;
+                                                @include shared_number;
+
+                                                &:focus {
+                                                    outline: none;
+                                                    border: none;
+                                                    box-shadow: none;
+                                                }
+
+                                                &::-webkit-outer-spin-button,
+                                                &::-webkit-inner-spin-button {
+                                                    -webkit-appearance: none;
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    .ajust_nb {
+                                        display: flex;
+                                        flex-direction: row;
+                                        align-items: center;
+                                        gap: 2px;
+
+                                        .icon {
+                                            border: none;
+                                            margin-left: 2px;
+                                            background-color: transparent;
+                                            &:hover { cursor: pointer; }
+                                        }
                                     }
                                 }
 
@@ -720,7 +807,7 @@
                 display: flex;
                 flex-direction: row;
                 align-items: center;
-                gap: 10px;
+                gap: 8px;
 
                 @mixin shared_p {
                     font-size: 20px;
@@ -786,12 +873,18 @@
             .sku_id {
                 display: flex;
                 flex-direction: row;
+                flex-wrap: wrap;
                 width: fit-content;
-                text-align: center;
+                text-align: start;
                 color: style.$text-color;
                 font-family: style.$font-Poppins-Bold;
                 font-size: 15px;
                 gap: 5px;
+
+                .sku {
+                    display: flex;
+                    gap: 5px;
+                }
 
                 &:hover { cursor: pointer; }
             }
@@ -819,33 +912,6 @@
                 }
 
                 &:hover { cursor: pointer; }
-            }
-        }
-
-        .social_media {
-            display: flex;
-            flex-direction: row;
-            justify-content: center;
-            align-items: center;
-            position: relative;
-            
-            .icon_social {
-                display: flex;
-                flex-direction: row;
-                position: absolute;
-                justify-content: center;
-                background-color: style.$background-color;
-                width: 80px;
-                height: 30px;
-                z-index: 1;
-                gap: 10px;
-
-                a img {
-                    width: 24px;
-                    height: 24px;
-
-                    &:hover { cursor: pointer; }
-                }
             }
         }
     }
