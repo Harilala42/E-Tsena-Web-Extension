@@ -76,7 +76,6 @@
             const item = data.info.aliexpress_ds_product_get_response.result;
             const skusInfo = item.ae_item_sku_info_dtos.ae_item_sku_info_d_t_o;
             const imageUrls = item.ae_multimedia_info_dto.image_urls.split(';');
-            await preloadImage(imageUrls[0]);
 
             url.value = ''; addItem.value = false;
             const existingItem = selectedItems.value.find(id => id.item_id === itemId);
@@ -86,7 +85,8 @@
             selectedItems.value.push({
                 item_id: itemId,
                 item_url: url_buffer,
-                img_url: imageUrls[0],
+                img_default: imageUrls[0],
+                img_url: await getSkuImage(skusInfo[0], imageUrls[0], 0),
                 details: item.ae_item_base_info_dto.subject,
                 rates: item.ae_item_base_info_dto.avg_evaluation_rating,
                 sku_item: skusInfo,
@@ -138,6 +138,26 @@
         }
     }
 
+    // Obtention de l'image produit du model
+    const getSkuImage = async (sku_item, img_default, id) => {
+        try {
+            const variant = sku_item.ae_sku_property_dtos;
+            const infoVariant = variant.ae_sku_property_d_t_o[0];
+            const imageSku = infoVariant.sku_image;
+ 
+            if (imageSku) {
+                await preloadImage(imageSku);
+                return imageSku;
+            } else {
+                await preloadImage(img_default);
+                return img_default;
+            }
+        } catch (error) {
+            console.error('Error in getSkuImage:', error);
+            return img_default;
+        }
+    };
+
     // Obtention des variants du produit
     const getVariantName = (sku_attr) => {
         if (!sku_attr) return 'Default';
@@ -169,12 +189,19 @@
     }
 
     // Obtention d'un model spécifique du produit
-    const chooseModel = (sku, id) => {
-        selectedItems.value[id].order_model = getInfoSku(selectedItems.value[id].sku_item[sku]);
-        selectedItems.value[id].selectedSkuIndex = sku;
-        selectedItems.value[id].number_item = 1;
-        item_id.value = -1;
-    }
+    const chooseModel = async (sku, id) => {
+        try {
+            selectedItems.value[id].order_model = getInfoSku(selectedItems.value[id].sku_item[sku]);
+            selectedItems.value[id].selectedSkuIndex = sku;
+            selectedItems.value[id].number_item = 1;
+            item_id.value = -1;
+            
+            const imageUrl = await getSkuImage(selectedItems.value[id].sku_item[sku], selectedItems.value[id].img_default, id);
+            selectedItems.value[id].img_url = imageUrl;
+        } catch (error) {
+            console.error('Error in chooseModel:', error);
+        }
+    };
 
     // Vérification du nombre de commande possible
     const numberItem = (item) => {
