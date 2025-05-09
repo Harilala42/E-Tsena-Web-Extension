@@ -86,6 +86,7 @@
                 item_id: itemId,
                 item_url: url_buffer,
                 img_default: imageUrls[0],
+                imageAbortController: null,
                 img_url: await getSkuImage(skusInfo[0], imageUrls[0], 0),
                 details: item.ae_item_base_info_dto.subject,
                 rates: item.ae_item_base_info_dto.avg_evaluation_rating,
@@ -139,21 +140,24 @@
     }
 
     // Obtention de l'image produit du model
-    const getSkuImage = async (sku_item, img_default, id) => {
+    const getSkuImage = async (sku_item, img_default, id, signal) => {
         try {
             const variant = sku_item.ae_sku_property_dtos;
             const infoVariant = variant.ae_sku_property_d_t_o[0];
             const imageSku = infoVariant.sku_image;
- 
+
             if (imageSku) {
-                await preloadImage(imageSku);
+                await preloadImage(imageSku, signal);
                 return imageSku;
             } else {
-                await preloadImage(img_default);
+                await preloadImage(img_default, signal);
                 return img_default;
             }
         } catch (error) {
-            console.error('Error in getSkuImage:', error);
+            if (error.name !== 'AbortError')
+                console.warn('Request imageSku aborted:', id);
+            else
+                console.error('Error in getSkuImage:', error);
             return img_default;
         }
     };
@@ -191,15 +195,31 @@
     // Obtention d'un model spécifique du produit
     const chooseModel = async (sku, id) => {
         try {
+            if (selectedItems.value[id].imageAbortController)
+                selectedItems.value[id].imageAbortController.abort();
+
+            const abortController = new AbortController();
+            selectedItems.value[id].imageAbortController = abortController;
+
             selectedItems.value[id].order_model = getInfoSku(selectedItems.value[id].sku_item[sku]);
             selectedItems.value[id].selectedSkuIndex = sku;
             selectedItems.value[id].number_item = 1;
             item_id.value = -1;
-            
-            const imageUrl = await getSkuImage(selectedItems.value[id].sku_item[sku], selectedItems.value[id].img_default, id);
-            selectedItems.value[id].img_url = imageUrl;
+
+            const imageUrl = await getSkuImage(
+                selectedItems.value[id].sku_item[sku],
+                selectedItems.value[id].img_default,
+                id,
+                abortController.signal
+            );
+
+            if (!abortController.signal.aborted)
+                selectedItems.value[id].img_url = imageUrl;
         } catch (error) {
-            console.error('Error in chooseModel:', error);
+            if (error.name !== 'AbortError')
+                console.error('Error in chooseModel:', error);
+        } finally {
+            selectedItems.value[id].imageAbortController = null;
         }
     };
 
@@ -299,10 +319,21 @@
     }
 
     // Pré-chargement des images critiques
-    const preloadImage = (url) => {
+
+    const preloadImage = (url, signal) => {
         return new Promise((resolve, reject) => {
+            if (signal?.aborted)
+                reject(new DOMException('Aborted', 'AbortError'));
+
             const img = new Image();
             img.src = url;
+
+            signal?.addEventListener('abort', () => {
+                img.onload = null;
+                img.onerror = null;
+                reject(new DOMException('Aborted', 'AbortError'));
+            });
+
             img.onload = () => resolve(img);
             img.onerror = () => reject('Failure Load Image');
         });
