@@ -406,7 +406,7 @@
                                             :min="1"
                                         >
                                         <button class="ajust_nb" v-if="!purchaseIt" 
-                                            @click="showNumber < 0 ? showNumber = selectedItems.indexOf(item) : showNumber = -1"
+                                            @click="showNumber < 0 ? showNumber = selectedItems.indexOf(item) : showNumber !== selectedItems.indexOf(item) ? showNumber = selectedItems.indexOf(item) : showNumber = -1"
                                         >
                                             <img src="/icons/pencil.svg" alt="adjust number" width="18px" height="18px">
                                         </button>
@@ -776,6 +776,7 @@
                                         flex-direction: row;
                                         align-items: center;
                                         justify-content: center;
+                                        gap: 3px;
 
                                         .ajust_nb {
                                             display: flex;
@@ -797,8 +798,7 @@
 
                                     .nb_item_enabled {
                                         @include shared_number;
-                                        gap: 3px;
-
+                                        
                                         .nb_input { display: none; }
                                         @include ajust_style;
                                     }
