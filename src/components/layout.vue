@@ -102,6 +102,8 @@
             }
 
             button {
+                width: 24px;
+                height: 24px;
                 border: none;
                 background-color: transparent;
             }
@@ -114,7 +116,7 @@
         justify-content: center;
         align-items: center;
         background-color: style.$background-color;
-        padding-bottom: 20px;
+        padding-bottom: 25px;
         
         .icon_social {
             display: flex;
@@ -139,7 +141,7 @@
             width: 350px;
             height: 1px;
             background-color: style.$text-color;
-            margin-bottom: 10px;
+            margin-bottom: 5px;
         }
     }
 </style>

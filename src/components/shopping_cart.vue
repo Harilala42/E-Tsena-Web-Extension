@@ -4,6 +4,7 @@
 
     var selectedItems = ref([]);
     const showFullText = ref({});
+    var showNumber = ref(-1);
     var purchaseIt = ref(false);
     var addItem = ref(false);
     var item_id = ref(-1);
@@ -223,6 +224,33 @@
         }
     };
 
+    // Notification Push pour le nombre de stock
+    const notifyStock = async (item, currentStock) => {
+        try {
+            const response = await fetch(item.img_url);
+            const blob = await response.blob();
+            
+            // Convertion en data URL
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                chrome.notifications.create("stockWarning", {
+                    type: "basic",
+                    iconUrl: reader.result,
+                    title: "❌ Stock insuffisant ❌",
+                    message: `Only ${currentStock} items available in stock`
+                });
+            };
+            reader.readAsDataURL(blob);
+        } catch (error) {
+            chrome.notifications.create("stockWarning", {
+                type: "basic",
+                iconUrl: "/icons/warning.svg",
+                title: "❌ Stock insuffisant ❌",
+                message: `Only ${currentStock} items available in stock`
+            });
+        }
+    }
+
     // Vérification du nombre de commande possible
     const numberItem = (item) => {
         const currentStock = item.order_model.currentStock;
@@ -230,43 +258,11 @@
 
         if (currentNumber < 1)
             currentNumber = 1;
-        else if (currentNumber > currentStock)
+        else if (currentNumber > currentStock) {
             currentNumber = currentStock;
+            notifyStock(item, currentStock);
+        }
         return currentNumber;
-    }
-
-    // Vérification des stocks disponibles
-    const enoughStock = async (id) => {
-        const item = selectedItems.value[id];
-        const currentStock = item.order_model.currentStock;
-        const currentNumber = item.number_item;
-    
-        if (currentNumber + 1 > currentStock) {
-            try {
-                const response = await fetch(item.img_url);
-                const blob = await response.blob();
-                
-                // Convertion en data URL
-                const reader = new FileReader();
-                reader.onloadend = () => {
-                    chrome.notifications.create("stockWarning", {
-                        type: "basic",
-                        iconUrl: reader.result,
-                        title: "❌ Stock insuffisant ❌",
-                        message: `Only ${currentStock} items available in stock`
-                    });
-                };
-                reader.readAsDataURL(blob);
-            } catch (error) {
-                chrome.notifications.create("stockWarning", {
-                    type: "basic",
-                    iconUrl: "/icons/warning.svg",
-                    title: "❌ Stock insuffisant ❌",
-                    message: `Only ${currentStock} items available in stock`
-                });
-            }
-        } else
-            selectedItems.value[id].number_item++;
     }
 
     // Extraction du itemID de l'URL
@@ -401,13 +397,19 @@
                             <div class="ref">
                                 <div class="number">
                                     <p class="price">${{ getItemPrice(item) }}</p><p>X</p>
-                                    <div class="nb_item">
+                                    <div :class="{'nb_item_enabled': selectedItems.indexOf(item) !== showNumber, 'nb_item_unabled': selectedItems.indexOf(item) === showNumber}">
                                         <p :class="{ 'nb_display': !purchaseIt }">{{ item.number_item }}</p>
-                                        <input type="number" class="nb_input" v-if="!purchaseIt" v-model="item.number_item" :value="numberItem(item)" @input="price_id = selectedItems.indexOf(item)">
-                                    </div>
-                                    <div class="ajust_nb" v-if="!purchaseIt">
-                                        <button class="icon" @click="enoughStock(selectedItems.indexOf(item))">+</button><p>/</p>
-                                        <button class="icon" @click="item.number_item > 1 ? item.number_item-- : item.number_item = item.number_item">-</button>
+                                        <input type="number" class="nb_input" 
+                                            v-if="!purchaseIt" v-model="item.number_item" 
+                                            :value="numberItem(item)" 
+                                            @input="price_id = selectedItems.indexOf(item)"
+                                            :min="1"
+                                        >
+                                        <button class="ajust_nb" v-if="!purchaseIt" 
+                                            @click="showNumber < 0 ? showNumber = selectedItems.indexOf(item) : showNumber = -1"
+                                        >
+                                            <img src="/icons/pencil.svg" alt="adjust number" width="18px" height="18px">
+                                        </button>
                                     </div>
                                 </div>
                                 <a :href="item.item_url" target="blank">
@@ -769,50 +771,54 @@
 
                                     p { @include shared_number; }
 
-                                    .nb_item {
-                                        @include shared_number;
-                                        overflow: hidden;
-                                        transition: width 2.5s ease;
+                                    @mixin ajust_style {
                                         display: flex;
-                                        gap: 3px;
+                                        flex-direction: row;
+                                        align-items: center;
+                                        justify-content: center;
 
-                                        .nb_input { display: none; }
+                                        .ajust_nb {
+                                            display: flex;
+                                            flex-direction: row;
+                                            align-items: center;
+                                            background-color: style.$background-color;
+                                            padding-bottom: 4px;
+                                            cursor: pointer;
+                                            border: none;
 
-                                        &:hover {
-                                            .nb_display { display: none; }
-
-                                            input[type="number"] {
-                                                width: 30px;
+                                            .icon {
                                                 border: none;
-                                                display: flex;
+                                                margin-left: 2px;
                                                 background-color: transparent;
-                                                @include shared_number;
-
-                                                &:focus {
-                                                    outline: none;
-                                                    border: none;
-                                                    box-shadow: none;
-                                                }
-
-                                                &::-webkit-outer-spin-button,
-                                                &::-webkit-inner-spin-button {
-                                                    -webkit-appearance: none;
-                                                }
+                                                &:hover { cursor: pointer; }
                                             }
                                         }
                                     }
 
-                                    .ajust_nb {
-                                        display: flex;
-                                        flex-direction: row;
-                                        align-items: center;
-                                        gap: 2px;
+                                    .nb_item_enabled {
+                                        @include shared_number;
+                                        gap: 3px;
 
-                                        .icon {
+                                        .nb_input { display: none; }
+                                        @include ajust_style;
+                                    }
+
+                                    .nb_item_unabled {
+                                        .nb_display { display: none; }
+                                        @include ajust_style;
+
+                                        input[type="number"] {
+                                            width: 50px;
                                             border: none;
-                                            margin-left: 2px;
+                                            display: flex;
                                             background-color: transparent;
-                                            &:hover { cursor: pointer; }
+                                            @include shared_number;
+
+                                            &:focus {
+                                                outline: none;
+                                                border: none;
+                                                box-shadow: none;
+                                            }
                                         }
                                     }
                                 }
