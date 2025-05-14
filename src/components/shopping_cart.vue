@@ -8,7 +8,7 @@
     var purchaseIt = ref(false);
     var addItem = ref(false);
     var item_id = ref(-1);
-    var price_id = ref(0);
+    var price_id = ref(-1);
     var url = ref('');
 
     onMounted(() => {
@@ -37,10 +37,14 @@
     });
 
     watch(selectedItems, (newVal) => {
+        chrome.storage.local.set({ cart: JSON.stringify(newVal) });
+
+        if (price_id.value < 0)
+            return ;
+
         if (newVal[price_id.value].number_item === selectedItems.value[price_id.value].number_item)
             selectedItems.value[price_id.value].number_item = numberItem(newVal[price_id.value]);
-
-        chrome.storage.local.set({ cart: JSON.stringify(newVal) });
+        price_id.value = -1;
     }, { deep: true });
 
     const truncatedUrl = computed(() => {
