@@ -2,12 +2,15 @@
     import { ref, computed, onMounted } from 'vue';
 
     var totalCart = ref(0);
+    var priceDelivery = ref(0);
     var margin = ref(0);
 
     onMounted(() => {
         chrome.storage.local.get(['cart'], async (result) => {
             if (result.cart) {
                 const cartData = await JSON.parse(result.cart);
+
+                getDeliveryOptions();
 
                 totalCart.value = cartData.reduce((sum, item) => {
                     let info = item.order_model,
@@ -17,11 +20,57 @@
                 }, 0).toFixed(2);
                 margin.value = totalPrice.value * 15 / 100;
             };
-        })
+        });
     });
 
+    const getDeliveryOptions = () => {
+        chrome.storage.local.get(['cart', 'jwt'], async (result) => {
+            if (result.cart && result.jwt) {
+                const { token } = result.jwt;
+                const cartData = await JSON.parse(result.cart);
+
+                const requestServer = cartData.map(async (item, id) => {
+                    try {
+                        const response = await fetch(import.meta.env.VITE_URL_DELIVERYFREIGHT_AE, {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': `Bearer ${token}`,
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                itemId: item.item_id,
+                                itemNumber: item.number_item,
+                                selectedSkuId: item.sku_item[item.selectedSkuIndex].sku_id
+                            })
+                        });
+
+                        if (!response.ok)
+                            return console.error(`HTTP error! status: ${response.status}`);
+
+                        const data = await response.json();
+                        
+                        const info = data.info.aliexpress_ds_freight_query_response;
+                        const options = info.result.delivery_options.delivery_option_d_t_o;
+                        
+                        const freight_price = options.reduce((sum, item) => {
+                            if (item.code === 'CAINIAO_STANDARD')
+                                return sum + Number(item.shipping_fee_cent);
+                            return sum;
+                        }, 0);
+
+                        priceDelivery.value += freight_price;
+                    } catch(error) {
+                        console.error(`Failed to get delivery price ${item.item_id}:`, error);
+                    }
+                });
+
+                await Promise.all(requestServer);
+            };
+        });
+    };
+
     const totalPrice = computed(() => {
-        return Number(totalCart.value) + Number(margin.value.toFixed(2));
+        return Number(totalCart.value) + Number(margin.value.toFixed(2)) + Number(priceDelivery.value.toFixed(2));
     });
 
     const cancelOrder = async () => await chrome.storage.local.set({ 'purchaseIt': false });
@@ -35,7 +84,7 @@
                     <div class="number">
                         <div class="fret">
                             <p class="type">Frais de Livraison par AliExpress</p>
-                            <p class="price">$0.00</p>
+                            <p class="price">${{ priceDelivery.toFixed(2) }}</p>
                         </div>
                         <div class="commission">
                             <p class="type">15% de commission</p>
