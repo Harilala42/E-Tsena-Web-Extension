@@ -29,6 +29,8 @@
                 const { token } = result.jwt;
                 const cartData = await JSON.parse(result.cart);
 
+                let totalFreight = 0;
+
                 const requestServer = cartData.map(async (item, id) => {
                     try {
                         const response = await fetch(import.meta.env.VITE_URL_DELIVERYFREIGHT_AE, {
@@ -52,19 +54,18 @@
                         const info = data.info.aliexpress_ds_freight_query_response;
                         const options = info.result.delivery_options.delivery_option_d_t_o;
                         
-                        const freight_price = options.reduce((sum, item) => {
-                            if (item.code === 'CAINIAO_STANDARD')
-                                return sum + Number(item.shipping_fee_cent);
-                            return sum;
+                        totalFreight += options.reduce((sum, opt) => {
+                            return opt.code === 'CAINIAO_STANDARD'
+                                ? sum + Number(opt.shipping_fee_cent || 0)
+                                : sum;
                         }, 0);
-
-                        priceDelivery.value += freight_price;
                     } catch(error) {
                         console.error(`Failed to get delivery price ${item.item_id}:`, error);
                     }
                 });
 
                 await Promise.all(requestServer);
+                priceDelivery.value += totalFreight;
             };
         });
     };
