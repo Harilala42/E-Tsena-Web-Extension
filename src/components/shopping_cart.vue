@@ -439,8 +439,8 @@
                 <p class="txt_utils">15% de<br> commission</p>
             </div>
             <button 
-                :class="{'buyIt': selectedItems.length !== 0, 'disabled-buyIt': selectedItems.length === 0 }" 
-                :disabled="selectedItems.length === 0"
+                :class="{'buyIt': selectedItems.length !== 0 && !addItem, 'disabled-buyIt': selectedItems.length === 0 || addItem }" 
+                :disabled="selectedItems.length === 0 || addItem"
                 @click="purchaseIt = !purchaseIt"
             ><p>Acheter</p>
             </button>
