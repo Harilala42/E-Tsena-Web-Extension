@@ -1,9 +1,13 @@
 <script setup>
     import { ref, computed, onMounted } from 'vue';
+    import { useRouter } from 'vue-router';
+
+    const router = useRouter();
 
     var totalCart = ref(0);
     var priceDelivery = ref(0);
     var margin = ref(0);
+    var payOrder = ref(false);
 
     onMounted(() => {
         chrome.storage.local.get(['cart'], async (result) => {
@@ -30,6 +34,7 @@
                 const cartData = await JSON.parse(result.cart);
 
                 let totalFreight = 0;
+                let notificationCount = 0;
 
                 const requestServer = cartData.map(async (item, id) => {
                     try {
@@ -61,11 +66,24 @@
                         }, 0);
                     } catch(error) {
                         console.error(`Failed to get delivery price ${item.item_id}:`, error);
+                        
+                        if (notificationCount == 0) {
+                            notificationCount += 1;
+                            chrome.notifications.create("failureGetDeliveryPrice", {
+                                type: "basic",
+                                iconUrl: "/icons/warning.svg",
+                                title: "🔃 Please Try Again 🔃",
+                                message: "Un problème réseau est survenu"
+                            }, (notificationId) => {
+                                chrome.storage.local.set({ 'purchaseIt': false });
+                            });
+                        }
                     }
                 });
 
                 await Promise.all(requestServer);
                 priceDelivery.value += totalFreight;
+                payOrder.value = true;
             };
         });
     };
@@ -85,7 +103,7 @@
                     <div class="number">
                         <div class="fret">
                             <p class="type">Frais de Livraison par AliExpress</p>
-                            <p class="price">${{ priceDelivery.toFixed(2) }}</p>
+                            <p class="price">{{ !payOrder ? '⏳...' : '$' + priceDelivery.toFixed(2) }}</p>
                         </div>
                         <div class="commission">
                             <p class="type">15% de commission</p>
@@ -120,9 +138,10 @@
             </div>
             <div class="check_out">
                 <button class="cancel" @click="cancelOrder">Annuler</button>
-                <router-link class="purchase" to="/web_payement">
-                    <p>Payer</p>
-                </router-link>
+                <button :disabled="!payOrder"
+                    :class="{'purchase': payOrder, 'disabled-purchase': !payOrder }"
+                    @click="router.push('/web_payement')"
+                >Payer</button>
             </div>
         </div>
     </div>
@@ -313,13 +332,24 @@
                     background-color: transparent;
                 }
 
-                .purchase {
+                @mixin purchase_shared {
                     border: none;
                     display: flex;
                     align-items: center;
                     justify-content: center;
+                }
+
+                .purchase {
+                    @include purchase_shared;
                     @include button-shared;
                     background-color: style.$primary-color;
+                }
+
+                .disabled-purchase {
+                    @include purchase_shared;
+                    @include button-shared;
+                    background-color: #CA6037;
+                    cursor: wait;
                 }
             }
         }

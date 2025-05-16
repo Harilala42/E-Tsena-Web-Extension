@@ -4,6 +4,7 @@
     import Layout from './components/layout.vue'
 
     const router = useRouter();
+    
     var showAuthentication = ref(true);
     var statusAuth = ref('');
 

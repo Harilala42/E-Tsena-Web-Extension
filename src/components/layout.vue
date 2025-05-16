@@ -39,9 +39,15 @@
             <router-link class="icon" v-if="state === 'shopping-cart' || state === 'profile'" to="/order_tracking">
                 <img src="/icons/truck.svg" alt="tracking">
             </router-link>
-            <button class="icon" @click="close_popup">
+            <button class="icon"
+                v-if="state !== 'checkout'"
+                @click="close_popup"
+            >
                 <img src="/icons/close.svg" alt="close">
             </button>
+            <router-link v-else class="icon" to="/shopping_cart">
+                <img src="/icons/right.svg" alt="right">
+            </router-link>
         </nav>
     </header>
     <main>

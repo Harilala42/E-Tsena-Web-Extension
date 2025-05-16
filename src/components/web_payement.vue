@@ -1,10 +1,14 @@
 <script setup>
-    import { ref } from 'vue';
+    import { ref, onMounted } from 'vue';
     import { useRouter } from 'vue-router';
 
     const router = useRouter();
     var serverCorrelationId = ref('');
     var transactionId = ref('');
+
+    onMounted(() => {
+        chrome.storage.local.set({ 'e_tsena_state': 'checkout' });
+    });
 
     // Pour initialiser une transaction avec Mvola
     const initTransaction = () => {
