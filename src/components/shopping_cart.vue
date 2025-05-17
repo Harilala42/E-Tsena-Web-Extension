@@ -1,6 +1,9 @@
 <script setup>
     import { ref, computed, onMounted, watch } from 'vue';
-    import ReviewItem from './review_order.vue'
+    import { useCounterStore } from '@/stores/currency';
+    import ReviewItem from './review_order.vue';
+
+    const sum = useCounterStore();
 
     var selectedItems = ref([]);
     const showFullText = ref({});
@@ -26,6 +29,7 @@
             if (details.cart) {
                 cartData = await JSON.parse(details.cart.newValue);
                 selectedItems.value = cartData;
+                sum.is_updated = false;
                 console.log('Cart Updated');
             } else if (details.purchaseIt)
                 purchaseIt.value = details.purchaseIt.newValue;

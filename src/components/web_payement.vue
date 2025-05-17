@@ -1,8 +1,11 @@
 <script setup>
     import { ref, onMounted } from 'vue';
     import { useRouter } from 'vue-router';
+    import { useCounterStore } from '@/stores/currency';
 
     const router = useRouter();
+    const sum = useCounterStore();
+
     var serverCorrelationId = ref('');
     var transactionId = ref('');
 

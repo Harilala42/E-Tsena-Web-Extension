@@ -1,13 +1,16 @@
 <script setup>
-    import { ref, computed, onMounted } from 'vue';
+    import { ref, computed, onMounted, watch } from 'vue';
+    import { useCounterStore } from '@/stores/currency';
     import { useRouter } from 'vue-router';
 
     const router = useRouter();
+    const sum = useCounterStore();
 
     var totalCart = ref(0);
     var priceDelivery = ref(0);
     var margin = ref(0);
     var payOrder = ref(false);
+    var resquestCounter = ref(0);
 
     onMounted(() => {
         chrome.storage.local.get(['cart'], async (result) => {
@@ -25,6 +28,17 @@
                 margin.value = totalPrice.value * 15 / 100;
             };
         });
+    });
+
+    const totalPrice = computed(() => {
+        return Number(totalCart.value) + Number(margin.value.toFixed(2)) + Number(priceDelivery.value.toFixed(2));
+    });
+
+    watch(payOrder, async (newVal) => {
+        if (newVal && !sum.is_updated) {
+            const usd = totalPrice.value.toFixed(2);
+            await sum.convertCurrency(usd);
+        }
     });
 
     const getDeliveryOptions = () => {
@@ -88,10 +102,6 @@
         });
     };
 
-    const totalPrice = computed(() => {
-        return Number(totalCart.value) + Number(margin.value.toFixed(2)) + Number(priceDelivery.value.toFixed(2));
-    });
-
     const cancelOrder = async () => await chrome.storage.local.set({ 'purchaseIt': false });
 </script>
 
@@ -132,14 +142,16 @@
                         <p class="utils">Total :</p>
                         <p>${{ totalPrice.toFixed(2) }}</p><p class="utils">ou</p>
                     </div>
-                    <p class="ariary">2,644,356Ar</p>
+                    <p class="ariary">
+                        {{ sum.amount === 0 || !payOrder ? '⏳...' : sum.amountWithDots + ' MGA' }}
+                    </p>
                 </div>
                 <img src="/icons/download.svg" alt="télécharger">
             </div>
             <div class="check_out">
                 <button class="cancel" @click="cancelOrder">Annuler</button>
-                <button :disabled="!payOrder"
-                    :class="{'purchase': payOrder, 'disabled-purchase': !payOrder }"
+                <button :disabled="!payOrder || !sum.is_updated"
+                    :class="{'purchase': payOrder && sum.is_updated, 'disabled-purchase': !payOrder || !sum.is_updated}"
                     @click="router.push('/web_payement')"
                 >Payer</button>
             </div>
