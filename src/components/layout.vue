@@ -24,7 +24,7 @@
 <template>
     <header>
         <div class="logo">
-            <img src="/icons/e-tsena_lg_h.png">
+            <img src="/icons/e-tsena_lg_h.png" alt="logo e-tsena">
         </div>
         <nav>
             <router-link class="icon" v-if="state === 'shopping-cart' || state === 'order-tracking'" to="/profile">
