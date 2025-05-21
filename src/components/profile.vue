@@ -1,5 +1,5 @@
 <script setup>
-    import { ref, onMounted } from 'vue';
+    import { ref, computed, onMounted } from 'vue';
 
     var user = ref({
         picture: '',
@@ -19,6 +19,19 @@
                 user.value.email = userInfo.email;
             }
         });
+    });
+
+    const truncatedEmail = computed(() => {
+        const email = user.value.email;
+        if (email.length <= 30)
+            return email;
+
+        const [localPart, domain] = email.split('@');
+
+        const firstPart = localPart.slice(0, 7);
+        const lastPart = localPart.slice(-7);
+
+        return `${firstPart}...${lastPart}@${domain}`;
     });
 
     const logoutUser = () => {
@@ -58,7 +71,7 @@
                     <img src="/icons/google_lg.svg" alt="google logout">
                     <div class="google">
                         <p>Délier mon compte</p>
-                        <p>{{ user.email }}</p>
+                        <p>{{ truncatedEmail }}</p>
                     </div>
                 </button>
             </div>
