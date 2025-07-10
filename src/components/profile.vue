@@ -81,6 +81,7 @@
 
 <style scoped lang="scss">
     @use '../style';
+    @use "sass:color";
 
     .container {
         display: flex;

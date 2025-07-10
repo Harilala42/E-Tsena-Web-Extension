@@ -95,7 +95,7 @@
                 item_id: itemId,
                 item_url: url_buffer,
                 img_default: imageUrls[0],
-                imageAbortController: null,
+                isPending: false,
                 img_url: await getSkuImage(skusInfo[0], imageUrls[0], 0),
                 details: item.ae_item_base_info_dto.subject,
                 rates: item.ae_item_base_info_dto.avg_evaluation_rating,
@@ -149,24 +149,21 @@
     }
 
     // Obtention de l'image produit du model
-    const getSkuImage = async (sku_item, img_default, id, signal) => {
+    const getSkuImage = async (sku_item, img_default, id) => {
         try {
             const variant = sku_item.ae_sku_property_dtos;
             const infoVariant = variant.ae_sku_property_d_t_o[0];
             const imageSku = infoVariant.sku_image;
 
             if (imageSku) {
-                await preloadImage(imageSku, signal);
+                await preloadImage(imageSku);
                 return imageSku;
             } else {
-                await preloadImage(img_default, signal);
+                await preloadImage(img_default);
                 return img_default;
             }
         } catch (error) {
-            if (error.name !== 'AbortError')
-                console.warn('Request imageSku aborted:', id);
-            else
-                console.error('Error in getSkuImage:', error);
+            console.error('Unexpected Error in getSkuImage:', error);
             return img_default;
         }
     };
@@ -203,32 +200,26 @@
 
     // Obtention d'un model spécifique du produit
     const chooseModel = async (sku, id) => {
+        if (selectedItems.value[id].isPending)
+            return;
+        selectedItems.value[id].isPending = true;
+
         try {
-            if (selectedItems.value[id].imageAbortController)
-                selectedItems.value[id].imageAbortController.abort();
+            const imageUrl = await getSkuImage(
+                selectedItems.value[id].sku_item[sku],
+                selectedItems.value[id].img_default,
+                id
+            );
 
-            const abortController = new AbortController();
-            selectedItems.value[id].imageAbortController = abortController;
-
+            selectedItems.value[id].img_url = imageUrl;
             selectedItems.value[id].order_model = getInfoSku(selectedItems.value[id].sku_item[sku]);
             selectedItems.value[id].selectedSkuIndex = sku;
             selectedItems.value[id].number_item = 1;
             item_id.value = -1;
-
-            const imageUrl = await getSkuImage(
-                selectedItems.value[id].sku_item[sku],
-                selectedItems.value[id].img_default,
-                id,
-                abortController.signal
-            );
-
-            if (!abortController.signal.aborted)
-                selectedItems.value[id].img_url = imageUrl;
         } catch (error) {
-            if (error.name !== 'AbortError')
-                console.error('Error in chooseModel:', error);
-        } finally {
-            selectedItems.value[id].imageAbortController = null;
+            console.error('Error in chooseModel:', error);
+        }  finally {
+            selectedItems.value[id].isPending = false;
         }
     };
 
@@ -323,21 +314,11 @@
     }
 
     // Pré-chargement des images critiques
-
-    const preloadImage = (url, signal) => {
+    const preloadImage = (url) => {
         return new Promise((resolve, reject) => {
-            if (signal?.aborted)
-                reject(new DOMException('Aborted', 'AbortError'));
-
             const img = new Image();
+
             img.src = url;
-
-            signal?.addEventListener('abort', () => {
-                img.onload = null;
-                img.onerror = null;
-                reject(new DOMException('Aborted', 'AbortError'));
-            });
-
             img.onload = () => resolve(img);
             img.onerror = () => reject('Failure Load Image');
         });
@@ -559,6 +540,8 @@
                     width: 200px;
                     height: 30px;
                     border: none;
+                    font-size: 12px;
+                    font-family: style.$font-Poppins-Regular;
                     border-radius: 15px 0 0 15px;
                     background-color: transparent;
                     padding-left: 15px;
@@ -566,7 +549,7 @@
                     &::placeholder {
                         color: style.$secondary-color;
                         font-size: 12px;
-                        font-family: style.$font-Poppins-Thin;
+                        font-family: style.$font-Poppins-Regular;
                     }
 
                     &:focus {

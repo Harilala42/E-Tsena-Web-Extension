@@ -20,7 +20,7 @@
     ],
     "host_permissions": [
         "https://fr.aliexpress.com/*",
-        "https://e-tsena-dropshipping.onrender.com/"
+        "https://e-tsena-dropshipping.onrender.com/*"
     ],
     "background": {
         "service_worker": "background.js"
