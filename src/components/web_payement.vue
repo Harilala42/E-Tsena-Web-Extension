@@ -116,8 +116,29 @@
 
 <template>
     <div class="payement">
-        <h1>Test de l'API Mvola</h1>
-        <button id="submit" @click="initTransaction">Initier la transaction</button>
+        <div class="warning">
+            <h2>Passer Commande</h2>
+            <p>Toutes vos informations sont protégées par des protocoles de sécurité avancés. Si vous avez des questions ou des préoccupations, notre service client est disponible pour vous assister.</p>
+        </div>
+        <div class="amount">
+            <div class="icon">
+                <div class="credit_cart">
+                    <img src="/icons/credit_cart.svg" alt="montant de la transaction">
+                </div>
+                <h2>Montant <br>de la Transaction</h2>
+            </div>
+            <div class="sum">
+                <p>Ar</p>
+                <h1>{{ sum.amountWithDots }}</h1>
+            </div>
+        </div>
+        <div class="actions">
+            <button class="cancel" @click="router.push('/shopping_cart')">Annuler</button>
+            <button class="pay" @click="initTransaction">
+                <p>Payer</p>
+                <img src="/icons/arrow_right.svg" alt="payer avec Mvola">
+            </button>
+        </div>
     </div>
 </template>
 
@@ -132,5 +153,105 @@
         background-color: style.$background-color;
         min-width: 400px;
         min-height: 500px;
+        gap: 15px;
+
+        .warning {
+            width: 350px;
+
+            h2 {
+                color: #F4AC0F;
+                font-family: style.$font-MontserratAlternates-Bold;
+                font-size: 15px;
+            }
+
+            p {
+                color: style.$text-color;
+                font-family: style.$font-Poppins-Regular;
+                font-size: 12px;
+            }
+        }
+
+        .amount {
+            min-width: 350px;
+            height: 60px;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: space-around;
+            background-color: #430346;
+            border: solid 1px style.$primary-color;
+            padding: 0 5px;
+            border-radius: 5px;
+
+            .icon {
+                display: flex;
+                flex-direction: row;
+                align-items: center;
+                justify-content: flex-start;
+                gap: 8px;
+
+                .credit_cart {
+                    width: 40px;
+                    height: 40px;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    background-color: style.$primary-color;
+                    border-radius: 5px;
+                }
+
+                h2 {
+                    color: style.$text-color;
+                    font-family: style.$font-MontserratAlternates-Bold;
+                    font-size: 15px;
+                }
+            }
+
+            .sum {
+                display: flex;
+                flex-direction: row;
+                align-content: flex-start;
+                color: style.$text-color;
+                font-family: style.$font-Poppins-Bold;
+                gap: 5px;
+
+                p { font-size: 15px; }
+                h1 { font-size: 25px; }
+            }
+        }
+
+        .actions {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+
+            @mixin button-shared {
+                width: 100px;
+                height: 35px;
+                font-size: 12px;
+                border-radius: 10px;
+                color: style.$text-color;
+                text-decoration: none;
+                font-family: style.$font-Poppins-Bold, sans-serif;
+                cursor: pointer;
+            }
+
+            .cancel {
+                @include button-shared;
+                border: 1px solid style.$primary-color;
+                background-color: transparent;
+            }
+
+            .pay {
+                border: none;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background-color: style.$primary-color;
+                @include button-shared;
+                gap: 5px;
+            }
+        }
     }
 </style>
