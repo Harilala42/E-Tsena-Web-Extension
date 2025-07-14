@@ -151,7 +151,7 @@
             <span class="icon" id="aliexpress"></span>
             <span class="btnText">Autoriser l'extension web</span>
         </div>
-        <p class="slogan">Aliexpress à portée de <span class="cta">clic</span>!</p>
+        <p class="slogan">AliExpress à portée de <span class="cta">clic</span>!</p>
     </div>
     <Layout v-else>
         <router-view />

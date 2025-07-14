@@ -5,6 +5,7 @@
 
     const router = useRouter();
     const sum = useCounterStore();
+    const recaptchaUrl = import.meta.env.VITE_URL_RECATPCHA;
 
     var transactionStatus = ref(null);
     var serverCorrelationId = ref(null);
@@ -12,6 +13,33 @@
 
     onMounted(() => {
         chrome.storage.local.set({ 'e_tsena_state': 'checkout' });
+
+        window.addEventListener("message", (event) => {
+            if (event.data?.type === "recaptcha-token") {
+                chrome.storage.local.get(['jwt'], async (result) => {
+                    if (result.jwt) {
+                        const { token } = result.jwt;
+
+                        try {
+                            const response = await fetch(import.meta.env.VITE_URL_VERIFY_RECATPCHA, {
+                                method: 'POST',
+                                headers: {
+                                    'Authorization': `Bearer ${token}`,
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify(event.data.token)
+                            })
+                            if (!response.ok)
+                                throw new Error(`Failed to solve Re-Captcha ${response.status}`);
+                            
+                            const data = await response.json();
+                        } catch(error) {
+                            console.warn(`Error solving Re-Captcha: ${error}`);
+                        };
+                    }
+                });
+            }
+        });
     });
 
     var pollingInterval = null;
@@ -132,8 +160,9 @@
                 <h1>{{ sum.amountWithDots }}</h1>
             </div>
         </div>
+        <iframe class="recaptcha" :src="recaptchaUrl" width="100%" min-height="100px"/>
         <div class="actions">
-            <button class="cancel" @click="router.push('/shopping_cart')">Annuler</button>
+            <router-link class="cancel" to="/shopping_cart">Annuler</router-link>
             <button class="pay" @click="initTransaction">
                 <p>Payer</p>
                 <img src="/icons/arrow_right.svg" alt="payer avec Mvola">
@@ -198,6 +227,11 @@
                     align-items: center;
                     background-color: style.$primary-color;
                     border-radius: 5px;
+
+                    img {
+                        width: 30px;
+                        height: 30px;
+                    }
                 }
 
                 h2 {
@@ -220,6 +254,8 @@
             }
         }
 
+        .recaptcha { border: none; }
+
         .actions {
             display: flex;
             align-items: center;
@@ -238,6 +274,9 @@
             }
 
             .cancel {
+                display: flex;
+                align-items: center;
+                justify-content: center;
                 @include button-shared;
                 border: 1px solid style.$primary-color;
                 background-color: transparent;
