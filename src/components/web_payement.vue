@@ -6,39 +6,25 @@
     const router = useRouter();
     const sum = useCounterStore();
     const recaptchaUrl = import.meta.env.VITE_URL_RECATPCHA;
+    const paymentMethods = ref([
+        { id: 'mvola', name: 'Mvola', icon: '/icons/mvola_lg.png' },
+        { id: 'orange money', name: 'Orange Money', icon: '/icons/orange_money_lg.png' }
+    ]);
 
+    var recaptchaToken = ref(null);
     var transactionStatus = ref(null);
     var serverCorrelationId = ref(null);
     var transactionId = ref(null);
+
+    const selectedMethod = ref(null);
+    const selectMethod = id => selectedMethod.value = id;
 
     onMounted(() => {
         chrome.storage.local.set({ 'e_tsena_state': 'checkout' });
 
         window.addEventListener("message", (event) => {
-            if (event.data?.type === "recaptcha-token") {
-                chrome.storage.local.get(['jwt'], async (result) => {
-                    if (result.jwt) {
-                        const { token } = result.jwt;
-
-                        try {
-                            const response = await fetch(import.meta.env.VITE_URL_VERIFY_RECATPCHA, {
-                                method: 'POST',
-                                headers: {
-                                    'Authorization': `Bearer ${token}`,
-                                    'Content-Type': 'application/json'
-                                },
-                                body: JSON.stringify(event.data.token)
-                            })
-                            if (!response.ok)
-                                throw new Error(`Failed to solve Re-Captcha ${response.status}`);
-                            
-                            const data = await response.json();
-                        } catch(error) {
-                            console.warn(`Error solving Re-Captcha: ${error}`);
-                        };
-                    }
-                });
-            }
+            if (event.data?.type === "recaptcha-token")
+                recaptchaToken.value = event.data.token;
         });
     });
 
@@ -66,7 +52,9 @@
                         message: 'Echec de la Transaction! Annulation de la commande.'
                     });
                 }
-                setTimeout(() => router.push('/shopping_cart'), 5000);
+                recaptchaToken.value = null;
+                transactionStatus.value = null;
+                setTimeout(() => router.push('/shopping_cart'), 3000);
             }
         }, 5000);
     }
@@ -76,11 +64,7 @@
         chrome.storage.local.get(['jwt'], async (result) => {
             if (result.jwt) {
                 const { token } = result.jwt;
-                const transactionData = {
-                    amount: Number(sum.amount).toFixed(0),
-                    descriptionText: 'Test paiement',
-                    debitPartyMsisdn: '0343500003'
-                };
+                transactionStatus.value = 'pending';
 
                 try {
                     const response = await fetch(import.meta.env.VITE_URL_MVOLAINIT, {
@@ -89,7 +73,12 @@
                             'Authorization': `Bearer ${token}`,
                             'Content-Type': 'application/json'
                         },
-                        body: JSON.stringify(transactionData)
+                        body: JSON.stringify({
+                            amount: Number(sum.amount).toFixed(0),
+                            descriptionText: 'Test paiement',
+                            debitPartyMsisdn: '0343500003',
+                            token: recaptchaToken.value
+                        })
                     });
                     if (!response.ok)
                         throw new Error(`HTTP error! status: ${response.status}`);
@@ -100,6 +89,8 @@
                         handleTransaction();
                     }
                 } catch(error) {
+                    recaptchaToken.value = null;
+                    transactionStatus.value = null;
                     console.error(`Error Init transaction: ${error}`);
                     chrome.notifications.create("failureInitMvola", {
                         type: "basic",
@@ -160,12 +151,32 @@
                 <h1>{{ sum.amountWithDots }}</h1>
             </div>
         </div>
-        <iframe class="recaptcha" :src="recaptchaUrl" width="100%" min-height="100px"/>
+        <div class="options">
+            <h2>Mode de Paiement</h2>
+            <div class="list">
+                <div v-for="method in paymentMethods"
+                    :key="method.id" class="card"
+                    @click="selectMethod(method.id)"
+                >
+                    <img :src="method.icon" :alt="method.name" class="card-icon" />
+                    <img class="selected" 
+                        src="/icons/selected.svg"
+                        v-if="selectedMethod === method.id"
+                        alt="selected"
+                    >
+                </div>
+            </div>
+        </div>
+        <iframe class="recaptcha" :src="recaptchaUrl" width="100%" height="125px"/>
         <div class="actions">
             <router-link class="cancel" to="/shopping_cart">Annuler</router-link>
-            <button class="pay" @click="initTransaction">
+            <button :disabled="!recaptchaToken || transactionStatus"
+                :class="{ 'enabled_pay': recaptchaToken && !transactionStatus, 'unenabled_pay': !recaptchaToken || transactionStatus }"
+                @click="initTransaction"
+            >
                 <p>Payer</p>
-                <img src="/icons/arrow_right.svg" alt="payer avec Mvola">
+                <span v-if="transactionStatus === 'pending'" class="load_pay"></span>
+                <img v-else src="/icons/arrow_right.svg" alt="payer maintenant">
             </button>
         </div>
     </div>
@@ -254,12 +265,60 @@
             }
         }
 
-        .recaptcha { border: none; }
-
-        .actions {
+        @mixin flex-shared {
             display: flex;
             align-items: center;
             justify-content: center;
+        }
+
+        .options {
+            width: 100%;
+            @include flex-shared;
+            flex-direction: column;
+            
+            gap: 10px;
+
+            h2 {
+                color: style.$text-color;
+                font-family: style.$font-MontserratAlternates-Bold;
+                font-size: 20px;
+            }
+
+            .list {
+                display: flex;
+                flex-direction: row;
+                align-items: center;
+                justify-content: space-between;
+                gap: 15px;
+
+                .card {
+                    width: 100px;
+                    height: 50px;
+                    position: relative;
+                    border: 1px solid style.$text-color;
+                    @include flex-shared;
+                    border-radius: 15px;
+    
+                    .card-icon {
+                        width: 100px;
+                        height: 100px;
+                    }
+
+                    .selected {
+                        width: 20px;
+                        height: 20px;
+                        position: absolute;
+                        inset: 1% 1% auto auto;
+                        z-index: 1;
+                    }
+                }
+            }
+        }
+
+        .recaptcha { border: none; }
+
+        .actions {
+            @include flex-shared;
             gap: 20px;
 
             @mixin button-shared {
@@ -270,27 +329,46 @@
                 color: style.$text-color;
                 text-decoration: none;
                 font-family: style.$font-Poppins-Bold, sans-serif;
-                cursor: pointer;
             }
 
             .cancel {
-                display: flex;
-                align-items: center;
-                justify-content: center;
+                @include flex-shared;
                 @include button-shared;
                 border: 1px solid style.$primary-color;
                 background-color: transparent;
+                cursor: pointer;
             }
 
-            .pay {
+            .enabled_pay {
                 border: none;
-                display: flex;
-                align-items: center;
-                justify-content: center;
                 background-color: style.$primary-color;
                 @include button-shared;
+                @include flex-shared;
+                cursor: pointer;
                 gap: 5px;
             }
+
+            .unenabled_pay {
+                border: none;
+                background-color: #ca6037;
+                @include button-shared;
+                @include flex-shared;
+                gap: 5px;
+            }
+
+            .load_pay {
+                width: 15px;
+                height: 15px;
+                border: 2px solid #f3f3f3;
+                border-top: 2px solid #3498db;
+                border-radius: 50%;
+                animation: spin 1s linear infinite;
+            }
         }
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
     }
 </style>
