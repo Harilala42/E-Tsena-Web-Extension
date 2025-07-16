@@ -16,7 +16,7 @@
     var serverCorrelationId = ref(null);
     var transactionId = ref(null);
 
-    const selectedMethod = ref(null);
+    const selectedMethod = ref('mvola');
     const selectMethod = id => selectedMethod.value = id;
 
     onMounted(() => {
@@ -170,8 +170,8 @@
         <iframe class="recaptcha" :src="recaptchaUrl" width="100%" height="125px"/>
         <div class="actions">
             <router-link class="cancel" to="/shopping_cart">Annuler</router-link>
-            <button :disabled="!recaptchaToken || transactionStatus"
-                :class="{ 'enabled_pay': recaptchaToken && !transactionStatus, 'unenabled_pay': !recaptchaToken || transactionStatus }"
+            <button :disabled="!recaptchaToken || transactionStatus || !selectedMethod"
+                :class="{ 'enabled_pay': recaptchaToken && !transactionStatus && selectedMethod, 'unenabled_pay': !recaptchaToken || transactionStatus || !selectedMethod }"
                 @click="initTransaction"
             >
                 <p>Payer</p>
@@ -298,6 +298,8 @@
                     border: 1px solid style.$text-color;
                     @include flex-shared;
                     border-radius: 15px;
+                    overflow: hidden;
+                    cursor: pointer;
     
                     .card-icon {
                         width: 100px;
@@ -354,15 +356,18 @@
                 @include button-shared;
                 @include flex-shared;
                 gap: 5px;
-            }
 
-            .load_pay {
-                width: 15px;
-                height: 15px;
-                border: 2px solid #f3f3f3;
-                border-top: 2px solid #3498db;
-                border-radius: 50%;
-                animation: spin 1s linear infinite;
+                .load_pay {
+                    width: 15px;
+                    height: 15px;
+                    border: 2px solid #f3f3f3;
+                    border-top: 2px solid #3498db;
+                    border-radius: 50%;
+                    animation: spin 1s linear infinite;
+                }
+
+                &:hover { cursor: not-allowed; }
+                &:has(.load_pay) { cursor: wait; }
             }
         }
     }

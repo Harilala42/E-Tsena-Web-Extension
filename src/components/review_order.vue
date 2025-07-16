@@ -10,7 +10,6 @@
     var priceDelivery = ref(0);
     var margin = ref(0);
     var payOrder = ref(false);
-    var resquestCounter = ref(0);
 
     onMounted(() => {
         chrome.storage.local.get(['cart'], async (result) => {
