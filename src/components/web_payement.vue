@@ -15,12 +15,14 @@
     var transactionStatus = ref(null);
     var serverCorrelationId = ref(null);
     var transactionId = ref(null);
+    var currentCart = ref([]);
 
     const selectedMethod = ref('mvola');
     const selectMethod = id => selectedMethod.value = id;
 
-    onMounted(() => {
+    onMounted(async () => {
         chrome.storage.local.set({ 'e_tsena_state': 'checkout' });
+        currentCart.value = await sum.prepareOrder();
 
         window.addEventListener("message", (event) => {
             if (event.data?.type === "recaptcha-token")
@@ -37,7 +39,7 @@
                 clearInterval(pollingInterval);
                 pollingInterval = null;
                 if (transactionStatus.value === 'completed') {
-                    const result = await initOrderAliExpress(transactionId.value);
+                    await initOrderAliExpress(transactionId.value);
 
                     chrome.notifications.create("successMvola", {
                         type: "basic",
@@ -77,8 +79,6 @@
                         },
                         body: JSON.stringify({
                             amount: Number(sum.amount).toFixed(0),
-                            descriptionText: 'Test paiement',
-                            debitPartyMsisdn: '0343500003',
                             token: recaptchaToken.value
                         })
                     });
@@ -136,10 +136,9 @@
 
     // Initialisation d'une commande AliExpress
     const initOrderAliExpress = async (referenceId) => {
-        chrome.storage.local.get(['cart', 'jwt'], async (result) => {
-            if (result.cart && result.jwt) {
+        chrome.storage.local.get(['jwt'], async (result) => {
+            if (result.jwt) {
                 const { token } = result.jwt;
-                const cartData = await JSON.parse(result.cart);
 
                 try {
                     const response = await fetch(import.meta.env.VITE_URL_INITORDER_AE, {
@@ -150,7 +149,7 @@
                         },
                         body: JSON.stringify({
                             transactionID: referenceId,
-                            shoppingCart: cartData
+                            shoppingCart: currentCart.value
                         })
                     });
 
@@ -158,9 +157,8 @@
                         throw new Error(`HTTP error! status: ${response.status}`);
 
                     const data = await response.json();
-                    console.log(`✅ Transaction Details: ${JSON.stringify(data)}`);
                 } catch(error) {
-                    console.error('Unexpedted Error during Transaction Details: ', error);
+                    console.error('Unexpedted Error during Init Order AE: ', error);
                 }
             }
         })

@@ -36,6 +36,29 @@ export const useCounterStore = defineStore('convertUSDtoMGA', {
                     }
                 }
             });
+        },
+        prepareOrder() {
+            return new Promise((resolve, reject) => {
+                chrome.storage.local.get(['cart'], async (result) => {
+                    if (!result.cart) resolve([]);
+
+                    try {
+                        const cartData = await JSON.parse(result.cart);
+
+                        const currentCart = cartData.map(item => ({
+                            product_id: item.item_id,
+                            product_count: item.number_item,
+                            sku_attr: item.sku_item[item.selectedSkuIndex].sku_attr,
+                            logistics_service_name: 'CAINIAO_STANDARD',
+                            order_memo: ''
+                        }));
+        
+                        resolve (currentCart);
+                    } catch(error) {
+                        reject('Error preparing Order AE');
+                    }
+                })
+            });
         }
     }
 });
