@@ -39,7 +39,7 @@
                 clearInterval(pollingInterval);
                 pollingInterval = null;
                 if (transactionStatus.value === 'completed') {
-                    await initOrderAliExpress(transactionId.value);
+                    await createOrderAE(transactionId.value);
 
                     chrome.notifications.create("successMvola", {
                         type: "basic",
@@ -135,13 +135,13 @@
     }
 
     // Initialisation d'une commande AliExpress
-    const initOrderAliExpress = async (referenceId) => {
+    const createOrderAE = async (referenceId) => {
         chrome.storage.local.get(['jwt'], async (result) => {
             if (result.jwt) {
                 const { token } = result.jwt;
 
                 try {
-                    const response = await fetch(import.meta.env.VITE_URL_INITORDER_AE, {
+                    const response = await fetch(import.meta.env.VITE_URL_CREATEORDER_AE, {
                         method: 'POST',
                         headers: {
                             'Authorization': `Bearer ${token}`,
