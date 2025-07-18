@@ -1,6 +1,11 @@
 <script setup>
     import { ref, computed, onMounted } from 'vue';
+    import { useRouter } from 'vue-router';
 
+    const router = useRouter();
+
+    var address = ref('');
+    var numberPhone = ref('');
     var user = ref({
         picture: '',
         name: '',
@@ -17,8 +22,32 @@
                 user.value.picture = userInfo.picture;
                 user.value.name = userInfo.name;
                 user.value.email = userInfo.email;
+
+                try {
+                    const response = await fetch(import.meta.env.VITE_URL_GETUSERINFO, {
+                        method: 'GET',
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    if (!response.ok)
+                        return console.error(`HTTP error! status: ${response.status}`);
+    
+                    const data = await response.json();
+    
+                    address.value = data.delivery_address;
+                    numberPhone.value = data.physical_contact;
+                } catch(error) {
+                    console.error('Failed getting user\'s info:', error);
+                }
             }
         });
+    });
+
+    watch(address, (newVal) => {
+        
+    });
+
+    watch(numberPhone, (newVal) => {
+        
     });
 
     const truncatedEmail = computed(() => {
@@ -49,6 +78,41 @@
                 });
             }
         });
+    }
+
+    const handleSubmit = () => {
+        chrome.storage.local.get(['jwt'], async (result) => {
+            if (result.jwt) {
+                const { token } = result.jwt;
+
+                try {
+                    const response = await fetch(import.meta.env.VITE_URL_SETUSERINFO, {
+                        method: 'PUT',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            delivery_address: address.value,
+                            physical_contact: numberPhone.value
+                        })
+                    });
+                    if (!response.ok)
+                        return console.error(`HTTP error! status: ${response.status}`);
+    
+                    chrome.notifications.create("updatedContact", {
+                            type: "basic",
+                            iconUrl: "/icons/check_circle.svg",
+                            title: `✅ User's Info successfully updated ✅`,
+                            message: 'Mise à jour des informations personnelles.'
+                        },
+                        (notificationId) => router.push('/shopping_cart')
+                    );
+                } catch(error) {
+                    console.error('Failed getting user\'s info:', error);
+                }
+            }
+        })
     }
 </script>
 
@@ -87,7 +151,7 @@
                         <img src="/icons/edit_square.svg" alt="">
                     </button>
                 </div>
-                <input type="text" placeholder="">
+                <input type="text" v-model="address" :value="address" placeholder="">
             </div>
             <div class="phone">
                 <div class="title">
@@ -99,11 +163,14 @@
                         <img src="/icons/edit_square.svg" alt="">
                     </button>
                 </div>
-                <input type="text" placeholder="">
+                <input type="text" v-model="numberPhone" :value="numberPhone" placeholder="">
             </div>
             <div class="action">
                 <router-link class="cancel" to="/shopping_cart">Annuler</router-link>
-                <button class="record">
+                <button type="submit"
+                    :disabled="!address || !numberPhone"
+                    :class="{ 'record': address || numberPhone, 'disabled-record': !address || !numberPhone }"
+                >
                     <img src="/icons/save.svg" alt="enregistrer">
                     <p>Enregistrer</p>
                 </button>
@@ -114,7 +181,6 @@
 
 <style scoped lang="scss">
     @use '../style';
-    @use "sass:color";
 
     .container {
         display: flex;
@@ -246,16 +312,18 @@
                 flex-direction: row;
                 justify-content: space-between;
 
+                @mixin shared_img {
+                    width: 24px;
+                    height: 24px;
+                }
+
                 .info {
                     display: flex;
                     flex-direction: row;
                     align-items: center;
                     gap: 5px;
 
-                    .img {
-                        width: 30px;
-                        height: 30px;
-                    }
+                    img { @include shared_img; }
 
                     h2 {
                         font-size: 18px;
@@ -268,6 +336,8 @@
                     border: none;
                     background-color: transparent;
                     cursor: pointer;
+
+                    img { @include shared_img; }
                 }
             }
 
