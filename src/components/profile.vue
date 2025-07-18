@@ -76,6 +76,39 @@
                 </button>
             </div>
         </div>
+        <form class="form" @submit.prevent="handleSubmit">
+            <div class="adress">
+                <div class="title">
+                    <div class="info">
+                        <img src="/icons/location.svg" alt="addresse de livraison">
+                        <h2>Addresse de Livraison</h2>
+                    </div>
+                    <button class="edit">
+                        <img src="/icons/edit_square.svg" alt="">
+                    </button>
+                </div>
+                <input type="text" placeholder="">
+            </div>
+            <div class="phone">
+                <div class="title">
+                    <div class="info">
+                        <img src="/icons/phone.svg" alt="contact physique">
+                        <h2>Numéro de Téléphone</h2>
+                    </div>
+                    <button class="edit">
+                        <img src="/icons/edit_square.svg" alt="">
+                    </button>
+                </div>
+                <input type="text" placeholder="">
+            </div>
+            <div class="action">
+                <router-link class="cancel" to="/shopping_cart">Annuler</router-link>
+                <button class="record">
+                    <img src="/icons/save.svg" alt="enregistrer">
+                    <p>Enregistrer</p>
+                </button>
+            </div>
+        </form>
     </div>
 </template>
 
@@ -196,6 +229,121 @@
                             max-width: 200px;
                         }
                     }
+                }
+            }
+        }
+
+        .form {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin-top: 15px;
+            gap: 15px;
+
+            .title {
+                display: flex;
+                flex-direction: row;
+                justify-content: space-between;
+
+                .info {
+                    display: flex;
+                    flex-direction: row;
+                    align-items: center;
+                    gap: 5px;
+
+                    .img {
+                        width: 30px;
+                        height: 30px;
+                    }
+
+                    h2 {
+                        font-size: 18px;
+                        font-family: style.$font-MontserratAlternates-Bold;
+                        color: style.$text-color;
+                    }
+                }
+
+                .edit {
+                    border: none;
+                    background-color: transparent;
+                    cursor: pointer;
+                }
+            }
+
+            
+            input[type="text"] {
+                width: 95%;
+                height: 30px;
+                border: none;
+                font-size: 12px;
+                border-radius: 5px;
+                color: style.$secondary-color;
+                font-family: style.$font-Poppins-Regular;
+                background-color: style.$text-color;
+                padding-left: 15px;
+
+                &::placeholder {
+                    font-size: 12px;
+                    color: style.$secondary-color;
+                    font-family: style.$font-Poppins-Regular;
+                }
+
+                &:focus {
+                    box-shadow: none;
+                    outline: none;
+                    border: none;
+                }
+            }
+
+            .action {
+                display: flex;
+                align-items: center;
+                justify-content: flex-end;
+                width: 100%;
+                gap: 10px;
+
+                @mixin button-shared {
+                    height: 35px;
+                    min-width: 75px;
+                    font-size: 12px;
+                    border-radius: 10px;
+                    color: style.$text-color;
+                    font-family: style.$font-Poppins-Bold, sans-serif;
+                    text-decoration: none;
+                    padding: 0 10px;
+                }
+
+                .cancel {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    @include button-shared;
+                    border: 1px solid style.$primary-color;
+                    background-color: transparent;
+                    cursor: pointer;
+                }
+
+                @mixin record_shared {
+                    border: none;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 5px;
+                }
+
+                .record {
+                    @include record_shared;
+                    @include button-shared;
+                    background-color: style.$primary-color;
+                    cursor: pointer;
+                }
+
+                .disabled-record {
+                    @include record_shared;
+                    @include button-shared;
+                    background-color: #CA6037;
+                    cursor: not-allowed;
                 }
             }
         }
