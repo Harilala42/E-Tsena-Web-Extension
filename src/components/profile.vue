@@ -1,5 +1,5 @@
 <script setup>
-    import { ref, computed, onMounted } from 'vue';
+    import { ref, computed, watch, onMounted } from 'vue';
     import { useRouter } from 'vue-router';
 
     const router = useRouter();
@@ -97,17 +97,26 @@
                             physical_contact: numberPhone.value
                         })
                     });
-                    if (!response.ok)
-                        return console.error(`HTTP error! status: ${response.status}`);
-    
-                    chrome.notifications.create("updatedContact", {
+                    if (response.ok) {
+                        return chrome.notifications.create("updatedContact", {
+                                type: "basic",
+                                iconUrl: "/icons/check_circle.svg",
+                                title: `✅ User's Info successfully updated ✅`,
+                                message: 'Mise à jour des informations personnelles.'
+                            },
+                            (notificationId) => router.push('/shopping_cart')
+                        );
+                    }
+                    else if (response.status === 400) {
+                        return chrome.notifications.create("canceledUpdate", {
                             type: "basic",
-                            iconUrl: "/icons/check_circle.svg",
-                            title: `✅ User's Info successfully updated ✅`,
-                            message: 'Mise à jour des informations personnelles.'
-                        },
-                        (notificationId) => router.push('/shopping_cart')
-                    );
+                            iconUrl: "/icons/warning.svg",
+                            title: `❌ Don't allowing same information(s) ❌`,
+                            message: 'Informations identiques en entrée.'
+                        });
+                    }
+                    else
+                        return console.error(`HTTP error! status: ${response.status}`);
                 } catch(error) {
                     console.error('Failed getting user\'s info:', error);
                 }
