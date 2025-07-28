@@ -15,9 +15,11 @@
     "sass": "^1.83.0",
     "vite-plugin-static-copy": "^2.2.0",
     "vue": "^3.5.12",
-    "vue-router": "^4.5.0"
+    "vue-router": "^4.5.0",
+    "vue-tel-input": "^9.3.0"
   },
   "devDependencies": {
+    "@types/vue-tel-input": "^2.1.7",
     "@vitejs/plugin-vue": "^5.1.4",
     "vite": "^5.4.18"
   }

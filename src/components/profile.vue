@@ -4,8 +4,15 @@
 
     const router = useRouter();
 
-    var address = ref('');
-    var numberPhone = ref('');
+    var warning = ref('');
+    var address = ref({
+        isUpdated: false,
+        content: ''
+    });
+    var numberPhone = ref({
+        isUpdated: false,
+        content: ''
+    });
     var user = ref({
         picture: '',
         name: '',
@@ -33,22 +40,30 @@
     
                     const data = await response.json();
     
-                    address.value = data.delivery_address;
-                    numberPhone.value = data.physical_contact;
+                    address.value.content = data.delivery_address;
+                    numberPhone.value.content = data.physical_contact;
                 } catch(error) {
-                    console.error('Failed getting user\'s info:', error);
+                    chrome.notifications.create("failureGetInfo", {
+                        type: "basic",
+                        iconUrl: "/icons/warning.svg",
+                        title: '❌ Network Error ❌',
+                        message: "Echec des informations personnelles 😓."
+                    });
                 }
             }
         });
     });
 
-    watch(address, (newVal) => {
-        
-    });
-
     watch(numberPhone, (newVal) => {
-        
-    });
+        const isDigital = (str) => /^\d+$/.test(str);
+        const phone = newVal.content.split(' ').join('');
+
+        if (isDigital(phone)) {
+            warning.value = '';
+            numberPhone.value.content = newVal.content;
+        } else
+            warning.value = 'Seulement des nombres entre 0 - 9';
+    }, { deep: true });
 
     const truncatedEmail = computed(() => {
         const email = user.value.email;
@@ -80,35 +95,70 @@
         });
     }
 
+    const updateAddressInfo = (token, address) => {
+        return new Promise(async (resolve, reject) => {
+            const response = await fetch(import.meta.env.VITE_URL_SETADDRESSINFO, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    delivery_address: address
+                })
+            });
+
+            if (response.ok)
+                resolve({ status: true });
+            else
+                reject({ status: false, code: response.status });
+        });
+    }
+
+    const updateContactInfo = (token, contact) => {
+        return new Promise(async (resolve, reject) => {
+            const response = await fetch(import.meta.env.VITE_URL_SETCONTACTINFO, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    physical_contact: contact.split(' ').join('')
+                })
+            });
+
+            if (response.ok)
+                resolve({ status: true });
+            else
+                reject({ status: false, code: response.status });
+        });
+    }
+
     const handleSubmit = () => {
         chrome.storage.local.get(['jwt'], async (result) => {
             if (result.jwt) {
                 const { token } = result.jwt;
 
                 try {
-                    const response = await fetch(import.meta.env.VITE_URL_SETUSERINFO, {
-                        method: 'PUT',
-                        headers: {
-                            'Authorization': `Bearer ${token}`,
-                            'Content-Type': 'application/json'
+                    let responseAddress, responseContact;
+
+                    if (address.value.isUpdated)
+                        responseAddress = await updateAddressInfo(token, address.value.content);
+                    if (numberPhone.value.isUpdated)
+                        responseContact = await updateContactInfo(token, numberPhone.value.content);
+
+                    chrome.notifications.create("updatedInfo", {
+                            type: "basic",
+                            iconUrl: "/icons/check_circle.svg",
+                            title: `✅ User's Info successfully updated ✅`,
+                            message: 'Mise à jour des informations personnelles.'
                         },
-                        body: JSON.stringify({
-                            delivery_address: address.value,
-                            physical_contact: numberPhone.value
-                        })
-                    });
-                    if (response.ok) {
-                        return chrome.notifications.create("updatedContact", {
-                                type: "basic",
-                                iconUrl: "/icons/check_circle.svg",
-                                title: `✅ User's Info successfully updated ✅`,
-                                message: 'Mise à jour des informations personnelles.'
-                            },
-                            (notificationId) => router.push('/shopping_cart')
-                        );
-                    }
-                    else if (response.status === 400) {
-                        return chrome.notifications.create("canceledUpdate", {
+                        (notificationId) => router.push('/shopping_cart')
+                    );
+                } catch(error) {
+                    if (error.code === 400) {
+                        chrome.notifications.create("canceledInfo", {
                             type: "basic",
                             iconUrl: "/icons/warning.svg",
                             title: `❌ Don't allowing same information(s) ❌`,
@@ -116,9 +166,7 @@
                         });
                     }
                     else
-                        return console.error(`HTTP error! status: ${response.status}`);
-                } catch(error) {
-                    console.error('Failed getting user\'s info:', error);
+                        console.error('Failed getting user\'s info:', error);
                 }
             }
         })
@@ -154,13 +202,19 @@
                 <div class="title">
                     <div class="info">
                         <img src="/icons/location.svg" alt="addresse de livraison">
-                        <h2>Addresse de Livraison</h2>
+                        <h2>Adresse de Livraison</h2>
                     </div>
-                    <button class="edit">
-                        <img src="/icons/edit_square.svg" alt="">
+                    <button type="button" class="edit"
+                        @click="address.isUpdated = !address.isUpdated"
+                    >
+                        <img src="/icons/edit_square.svg" alt="Modifier l'adresse">
                     </button>
                 </div>
-                <input type="text" v-model="address" :value="address" placeholder="">
+                <input type="text"
+                    v-model="address.content" :value="address.content"
+                    placeholder="Enter a delivery address"
+                    :disabled="!address.isUpdated"
+                >
             </div>
             <div class="phone">
                 <div class="title">
@@ -168,17 +222,24 @@
                         <img src="/icons/phone.svg" alt="contact physique">
                         <h2>Numéro de Téléphone</h2>
                     </div>
-                    <button class="edit">
-                        <img src="/icons/edit_square.svg" alt="">
+                    <button type="button" class="edit" 
+                        @click="numberPhone.isUpdated = !numberPhone.isUpdated"
+                    >
+                        <img src="/icons/edit_square.svg" alt="Modifier le contact">
                     </button>
                 </div>
-                <input type="text" v-model="numberPhone" :value="numberPhone" placeholder="">
+                <vue-tel-input class="tel"
+                    v-model="numberPhone.content"
+                    :default-country="'MG'" :only-countries="['MG']"
+                    :disabled="!numberPhone.isUpdated"
+                />
+                <p class="error" v-if="warning !== ''">{{ warning }}</p>
             </div>
             <div class="action">
                 <router-link class="cancel" to="/shopping_cart">Annuler</router-link>
                 <button type="submit"
-                    :disabled="!address || !numberPhone"
-                    :class="{ 'record': address || numberPhone, 'disabled-record': !address || !numberPhone }"
+                    :disabled="(!address.isUpdated && !numberPhone.isUpdated) || warning !== ''"
+                    :class="{ 'record': address.isUpdated || numberPhone.isUpdated, 'disabled-record': (!address.isUpdated && !numberPhone.isUpdated) || warning !== '' }"
                 >
                     <img src="/icons/save.svg" alt="enregistrer">
                     <p>Enregistrer</p>
@@ -350,17 +411,20 @@
                 }
             }
 
-            
-            input[type="text"] {
-                width: 95%;
-                height: 30px;
-                border: none;
+            @mixin shared_input {
                 font-size: 12px;
                 border-radius: 5px;
                 color: style.$secondary-color;
                 font-family: style.$font-Poppins-Regular;
                 background-color: style.$text-color;
+            }
+
+            input[type="text"] { 
+                width: 95%;
+                height: 30px;
+                border: none;
                 padding-left: 15px;
+                @include shared_input;
 
                 &::placeholder {
                     font-size: 12px;
@@ -372,6 +436,27 @@
                     box-shadow: none;
                     outline: none;
                     border: none;
+                }
+            }
+
+            .phone {
+                width: 100%;
+
+                .tel {
+                    width: 100%;
+                    height: 30px;
+                    @include shared_input;
+
+                    ::v-deep(.vti__dropdown-list) {
+                        width: 300px !important;
+                    }
+                }
+
+                .error {
+                    color: #f4ac0f;
+                    font-size: 12px;
+                    font-family: style.$font-Poppins-Regular;
+                    padding-top: 5px;
                 }
             }
 
