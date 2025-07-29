@@ -251,7 +251,9 @@
                     placeholder="Enter a delivery address"
                     :disabled="!address.isUpdated || isFormSubmited"
                 >
-                <p class="counter">{{ address.content.length }}/255 caractères.</p>
+                <p :class="{ 'counter': address.content.length < 200, 'counter_warning': address.content.length >= 200, 'counter_error': address.content.length >= 255 }">
+                    {{ address.content.length }}/255 caractères.
+                </p>
             </div>
             <div class="phone">
                 <div class="title">
@@ -417,7 +419,7 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            margin-top: 25px;
+            margin-top: 20px;
             gap: 15px;
 
             .title {
@@ -499,11 +501,25 @@
                     border: none;
                 }
 
-                .counter {
+                @mixin shared_counter {
                     font-size: 12px;
-                    color: style.$text-color;
                     font-family: style.$font-Poppins-Regular;
                     padding-top: 5px;
+                }
+
+                .counter {
+                    @include shared_counter;
+                    color: style.$text-color;
+                }
+
+                .counter_warning {
+                    color: #f4ac0f;
+                    @include shared_counter;
+                }
+
+                .counter_error {
+                    color: #ff0000;
+                    @include shared_counter;
                 }
             }
 
