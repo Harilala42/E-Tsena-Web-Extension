@@ -338,7 +338,7 @@
             width: 350px;
             height: 1px;
             background-color: style.$text-color;
-            margin-bottom: 25px;
+            margin-bottom: 20px;
         }
 
         .user {
