@@ -5,6 +5,8 @@
     const router = useRouter();
 
     var warning = ref('');
+    var isEmptyField = ref(false);
+    var isFormSubmited = ref(false);
     var address = ref({
         isUpdated: false,
         content: ''
@@ -54,15 +56,32 @@
         });
     });
 
+    watch(address, (newVal) => {
+        if (newVal.content.trim() === '')
+            return isEmptyField.value = true;
+        isEmptyField.value = false;
+    }, { deep: true });
+
     watch(numberPhone, (newVal) => {
         const isDigital = (str) => /^\d+$/.test(str);
         const phone = newVal.content.split(' ').join('');
 
-        if (isDigital(phone)) {
+        if (newVal.content === '') {
             warning.value = '';
-            numberPhone.value.content = newVal.content;
-        } else
-            warning.value = 'Seulement des nombres entre 0 - 9';
+            isEmptyField.value = true
+            return ;
+        }
+        isEmptyField.value = false;
+
+        if (!isDigital(phone))
+            return warning.value = 'Seulement des nombres entre 0 - 9';
+        if (phone.length !== 10)
+            return warning.value = 'Numéro de téléphone introuvable';
+        if (!phone.startsWith('034') && !phone.startsWith('038'))
+            return warning.value = 'Opérateur pas encore prise en charge';
+        
+        warning.value = '';
+        numberPhone.value.content = newVal.content;
     }, { deep: true });
 
     const truncatedEmail = computed(() => {
@@ -97,41 +116,45 @@
 
     const updateAddressInfo = (token, address) => {
         return new Promise(async (resolve, reject) => {
-            const response = await fetch(import.meta.env.VITE_URL_SETADDRESSINFO, {
-                method: 'PUT',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    delivery_address: address
-                })
-            });
+            try {
+                const response = await fetch(import.meta.env.VITE_URL_SETADDRESSINFO, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        delivery_address: address
+                    })
+                });
 
-            if (response.ok)
-                resolve({ status: true });
-            else
-                reject({ status: false, code: response.status });
+                if (response.ok) resolve();
+                reject({ code: response.status });
+            } catch(error) {
+                reject('Error during sending Address!');
+            }
         });
     }
 
     const updateContactInfo = (token, contact) => {
         return new Promise(async (resolve, reject) => {
-            const response = await fetch(import.meta.env.VITE_URL_SETCONTACTINFO, {
-                method: 'PUT',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    physical_contact: contact.split(' ').join('')
-                })
-            });
+            try {
+                const response = await fetch(import.meta.env.VITE_URL_SETCONTACTINFO, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        physical_contact: contact.split(' ').join('')
+                    })
+                });
 
-            if (response.ok)
-                resolve({ status: true });
-            else
-                reject({ status: false, code: response.status });
+                if (response.ok) resolve();
+                reject({ code: response.status });
+            } catch(error) {
+                reject('Error during sending Contact!');
+            }
         });
     }
 
@@ -139,14 +162,13 @@
         chrome.storage.local.get(['jwt'], async (result) => {
             if (result.jwt) {
                 const { token } = result.jwt;
+                isFormSubmited.value = true;
 
                 try {
-                    let responseAddress, responseContact;
-
                     if (address.value.isUpdated)
-                        responseAddress = await updateAddressInfo(token, address.value.content);
+                        await updateAddressInfo(token, address.value.content);
                     if (numberPhone.value.isUpdated)
-                        responseContact = await updateContactInfo(token, numberPhone.value.content);
+                        await updateContactInfo(token, numberPhone.value.content);
 
                     chrome.notifications.create("updatedInfo", {
                             type: "basic",
@@ -154,9 +176,10 @@
                             title: `✅ User's Info successfully updated ✅`,
                             message: 'Mise à jour des informations personnelles.'
                         },
-                        (notificationId) => router.push('/shopping_cart')
+                        (notificationId) => setTimeout(() => router.push('/shopping_cart'), 3000)
                     );
                 } catch(error) {
+                    isFormSubmited.value = false;
                     if (error.code === 400) {
                         chrome.notifications.create("canceledInfo", {
                             type: "basic",
@@ -164,9 +187,14 @@
                             title: `❌ Don't allowing same information(s) ❌`,
                             message: 'Informations identiques en entrée.'
                         });
+                    } else {
+                        chrome.notifications.create("failureInfo", {
+                            type: "basic",
+                            iconUrl: "/icons/warning.svg",
+                            title: `❌ Failure to update user's data ❌`,
+                            message: 'Un probleme est survenu. Veillez réessayer!'
+                        }, (notificationId) => console.error("Failed to update user's info: ", error));
                     }
-                    else
-                        console.error('Failed getting user\'s info:', error);
                 }
             }
         })
@@ -198,7 +226,7 @@
             </div>
         </div>
         <form class="form" @submit.prevent="handleSubmit">
-            <div class="adress">
+            <div class="address">
                 <div class="title">
                     <div class="info">
                         <img src="/icons/location.svg" alt="addresse de livraison">
@@ -212,15 +240,16 @@
                 </div>
                 <input type="text"
                     v-model="address.content" :value="address.content"
+                    :class="{ 'enabled_address': address.isUpdated && !isFormSubmited, 'disabled_address': !address.isUpdated || isFormSubmited }"
                     placeholder="Enter a delivery address"
-                    :disabled="!address.isUpdated"
+                    :disabled="!address.isUpdated || isFormSubmited"
                 >
             </div>
             <div class="phone">
                 <div class="title">
                     <div class="info">
                         <img src="/icons/phone.svg" alt="contact physique">
-                        <h2>Numéro de Téléphone</h2>
+                        <h2>Numéro Mobile Money</h2>
                     </div>
                     <button type="button" class="edit" 
                         @click="numberPhone.isUpdated = !numberPhone.isUpdated"
@@ -228,20 +257,26 @@
                         <img src="/icons/edit_square.svg" alt="Modifier le contact">
                     </button>
                 </div>
-                <vue-tel-input class="tel"
-                    v-model="numberPhone.content"
+                <vue-tel-input v-model="numberPhone.content"
+                    :class="{ 'enabled_tel': warning === '' && numberPhone.isUpdated && !isFormSubmited, 'unabled_tel': !numberPhone.isUpdated || isFormSubmited, 'tel_error': warning !== '' }"
                     :default-country="'MG'" :only-countries="['MG']"
-                    :disabled="!numberPhone.isUpdated"
+                    :disabled="!numberPhone.isUpdated || isFormSubmited"
                 />
                 <p class="error" v-if="warning !== ''">{{ warning }}</p>
             </div>
             <div class="action">
                 <router-link class="cancel" to="/shopping_cart">Annuler</router-link>
                 <button type="submit"
-                    :disabled="(!address.isUpdated && !numberPhone.isUpdated) || warning !== ''"
-                    :class="{ 'record': address.isUpdated || numberPhone.isUpdated, 'disabled-record': (!address.isUpdated && !numberPhone.isUpdated) || warning !== '' }"
+                    :disabled="(!address.isUpdated && !numberPhone.isUpdated) || warning !== '' || isEmptyField"
+                    :class="{
+                        'record': address.isUpdated || numberPhone.isUpdated,
+                        'disabled-record':
+                            (!address.isUpdated && !numberPhone.isUpdated)
+                            || warning !== '' || isEmptyField || isFormSubmited
+                    }"
                 >
-                    <img src="/icons/save.svg" alt="enregistrer">
+                    <span v-if="isFormSubmited" class="load_record"></span>
+                    <img v-else src="/icons/save.svg" alt="enregistrer">
                     <p>Enregistrer</p>
                 </button>
             </div>
@@ -282,7 +317,7 @@
 
                 .text {
                     font-weight: 800;
-                    font-size: 20px;
+                    font-size: 22px;
                     color: style.$text-color;
                     font-family: style.$font-MontserratAlternates-Bold;
                 }
@@ -374,13 +409,14 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            margin-top: 15px;
-            gap: 15px;
+            margin-top: 20px;
+            gap: 20px;
 
             .title {
                 display: flex;
                 flex-direction: row;
                 justify-content: space-between;
+                margin-bottom: 10px;
 
                 @mixin shared_img {
                     width: 24px;
@@ -396,7 +432,7 @@
                     img { @include shared_img; }
 
                     h2 {
-                        font-size: 18px;
+                        font-size: 20px;
                         font-family: style.$font-MontserratAlternates-Bold;
                         color: style.$text-color;
                     }
@@ -417,24 +453,41 @@
                 color: style.$secondary-color;
                 font-family: style.$font-Poppins-Regular;
                 background-color: style.$text-color;
+                border: none;
             }
 
-            input[type="text"] { 
-                width: 95%;
-                height: 30px;
-                border: none;
-                padding-left: 15px;
-                @include shared_input;
-
-                &::placeholder {
-                    font-size: 12px;
-                    color: style.$secondary-color;
-                    font-family: style.$font-Poppins-Regular;
+            .address {
+                @mixin shared_address {
+                    width: 95%;
+                    height: 30px;
+                    padding-left: 15px;
                 }
 
-                &:focus {
-                    box-shadow: none;
-                    outline: none;
+                .enabled_address { 
+                    @include shared_input;
+                    @include shared_address;
+
+                    &::placeholder {
+                        font-size: 12px;
+                        color: style.$secondary-color;
+                        font-family: style.$font-Poppins-Regular;
+                    }
+
+                    &:hover, &:focus {
+                        outline: none;
+                        border-color: 1px solid rgb(52, 152, 219);
+                        box-shadow: 0 0 5px 2px rgb(52, 152, 219);
+                    }
+                }
+
+                .disabled_address {
+                    font-size: 12px;
+                    border-radius: 5px;
+                    @include shared_address;
+                    font-family: style.$font-Poppins-Regular;
+                    background-color: rgb(239, 239, 239);
+                    color: light-dark(rgb(84, 84, 84));
+                    cursor: not-allowed;
                     border: none;
                 }
             }
@@ -442,7 +495,7 @@
             .phone {
                 width: 100%;
 
-                .tel {
+                @mixin shared_tel {
                     width: 100%;
                     height: 30px;
                     @include shared_input;
@@ -450,6 +503,24 @@
                     ::v-deep(.vti__dropdown-list) {
                         width: 300px !important;
                     }
+                }
+
+                .enabled_tel {
+                    @include shared_tel;
+
+                    &:hover,  &:focus {
+                        outline: none;
+                        border-color: rgb(52, 152, 219);
+                        box-shadow: 0 0 5px 2px rgb(52, 152, 219);
+                    }
+                }
+
+                .unabled_tel { @include shared_tel; }
+
+                .tel_error {
+                    @include shared_tel;
+                    box-shadow: 0 0 5px 2px rgba(244, 172, 15, 0.5);
+                    border: #f4ac0f;
                 }
 
                 .error {
@@ -507,9 +578,25 @@
                     @include record_shared;
                     @include button-shared;
                     background-color: #CA6037;
-                    cursor: not-allowed;
+
+                    .load_record {
+                        width: 15px;
+                        height: 15px;
+                        border: 2px solid #f3f3f3;
+                        border-top: 2px solid #3498db;
+                        border-radius: 50%;
+                        animation: spin 1s linear infinite;
+                    }
+
+                    &:hover { cursor: not-allowed; }
+                    &:has(.load_record) { cursor: wait; }
                 }
             }
         }
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
     }
 </style>
