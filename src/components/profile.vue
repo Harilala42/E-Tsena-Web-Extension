@@ -46,11 +46,13 @@
                     numberPhone.value.content = data.physical_contact;
                 } catch(error) {
                     chrome.notifications.create("failureGetInfo", {
-                        type: "basic",
-                        iconUrl: "/icons/warning.svg",
-                        title: '❌ Network Error ❌',
-                        message: "Echec des informations personnelles 😓."
-                    });
+                            type: "basic",
+                            iconUrl: "/icons/warning.svg",
+                            title: '❌ Network Error ❌',
+                            message: "Echec des informations personnelles 😓."
+                        },
+                        (notificationId) => router.push('/shopping_cart')
+                    );
                 }
             }
         });
@@ -189,11 +191,13 @@
                         });
                     } else {
                         chrome.notifications.create("failureInfo", {
-                            type: "basic",
-                            iconUrl: "/icons/warning.svg",
-                            title: `❌ Failure to update user's data ❌`,
-                            message: 'Un probleme est survenu. Veillez réessayer!'
-                        }, (notificationId) => console.error("Failed to update user's info: ", error));
+                                type: "basic",
+                                iconUrl: "/icons/warning.svg",
+                                title: `❌ Failure to update user's data ❌`,
+                                message: 'Un probleme est survenu. Veillez réessayer!'
+                            },
+                            (notificationId) => console.error("Failed to update user's info: ", error)
+                        );
                     }
                 }
             }
