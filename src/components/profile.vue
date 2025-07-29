@@ -417,8 +417,8 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            margin-top: 20px;
-            gap: 20px;
+            margin-top: 25px;
+            gap: 15px;
 
             .title {
                 display: flex;
