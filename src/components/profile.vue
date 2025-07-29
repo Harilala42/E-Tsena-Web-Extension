@@ -62,6 +62,9 @@
         if (newVal.content.trim() === '')
             return isEmptyField.value = true;
         isEmptyField.value = false;
+
+        if (newVal.content.length > 255)
+            address.value.content = newVal.content.slice(0, 255);
     }, { deep: true });
 
     watch(numberPhone, (newVal) => {
@@ -76,11 +79,11 @@
         isEmptyField.value = false;
 
         if (!isDigital(phone))
-            return warning.value = 'Seulement des nombres entre 0 - 9';
+            return warning.value = 'Seulement des nombres entre 0 - 9.';
         if (phone.length !== 10)
-            return warning.value = 'Numéro de téléphone introuvable';
+            return warning.value = 'Numéro de téléphone introuvable.';
         if (!phone.startsWith('034') && !phone.startsWith('038'))
-            return warning.value = 'Opérateur pas encore prise en charge';
+            return warning.value = 'Opérateur pas encore prise en charge.';
         
         warning.value = '';
         numberPhone.value.content = newVal.content;
@@ -248,6 +251,7 @@
                     placeholder="Enter a delivery address"
                     :disabled="!address.isUpdated || isFormSubmited"
                 >
+                <p class="counter">{{ address.content.length }}/255 caractères.</p>
             </div>
             <div class="phone">
                 <div class="title">
@@ -494,6 +498,13 @@
                     cursor: not-allowed;
                     border: none;
                 }
+
+                .counter {
+                    font-size: 12px;
+                    color: style.$text-color;
+                    font-family: style.$font-Poppins-Regular;
+                    padding-top: 5px;
+                }
             }
 
             .phone {
@@ -524,12 +535,11 @@
                 .tel_error {
                     @include shared_tel;
                     box-shadow: 0 0 5px 2px rgba(244, 172, 15, 0.5);
-                    border: #f4ac0f;
                 }
 
                 .error {
-                    color: #f4ac0f;
                     font-size: 12px;
+                    color: #f4ac0f;
                     font-family: style.$font-Poppins-Regular;
                     padding-top: 5px;
                 }
