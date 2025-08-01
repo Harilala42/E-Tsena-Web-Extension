@@ -60,7 +60,7 @@
                 transactionStatus.value = null;
                 setTimeout(() => router.push('/shopping_cart'), 3000);
             }
-        }, 5000);
+        }, 10000);
     }
 
     // Pour initialiser une transaction avec Mvola

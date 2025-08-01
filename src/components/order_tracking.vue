@@ -51,7 +51,7 @@
 
                 .text {
                     font-weight: 800;
-                    font-size: 20px;
+                    font-size: 22px;
                     color: style.$text-color;
                     font-family: style.$font-MontserratAlternates-Bold;
                 }

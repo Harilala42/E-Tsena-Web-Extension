@@ -38,7 +38,7 @@
                         headers: { 'Authorization': `Bearer ${token}` }
                     });
                     if (!response.ok)
-                        return console.error(`HTTP error! status: ${response.status}`);
+                        throw new Error(`HTTP error! status: ${response.status}`);
     
                     const data = await response.json();
     
@@ -120,46 +120,28 @@
     }
 
     const updateAddressInfo = (token, address) => {
-        return new Promise(async (resolve, reject) => {
-            try {
-                const response = await fetch(import.meta.env.VITE_URL_SETADDRESSINFO, {
-                    method: 'PUT',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        delivery_address: address
-                    })
-                });
-
-                if (response.ok) resolve();
-                reject({ code: response.status });
-            } catch(error) {
-                reject('Error during sending Address!');
-            }
+        return fetch(import.meta.env.VITE_URL_SETADDRESSINFO, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                delivery_address: address
+            })
         });
     }
 
     const updateContactInfo = (token, contact) => {
-        return new Promise(async (resolve, reject) => {
-            try {
-                const response = await fetch(import.meta.env.VITE_URL_SETCONTACTINFO, {
-                    method: 'PUT',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        physical_contact: contact.split(' ').join('')
-                    })
-                });
-
-                if (response.ok) resolve();
-                reject({ code: response.status });
-            } catch(error) {
-                reject('Error during sending Contact!');
-            }
+        return fetch(import.meta.env.VITE_URL_SETCONTACTINFO, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                physical_contact: contact.split(' ').join('')
+            })
         });
     }
 
@@ -170,10 +152,16 @@
                 isFormSubmited.value = true;
 
                 try {
-                    if (address.value.isUpdated)
-                        await updateAddressInfo(token, address.value.content);
-                    if (numberPhone.value.isUpdated)
-                        await updateContactInfo(token, numberPhone.value.content);
+                    if (address.value.isUpdated) {
+                        const responseAddress = await updateAddressInfo(token, address.value.content);
+                        if (!responseAddress.ok)
+                            throw new Error(`HTTP error! status: ${responseAddress.status}`);
+                    }
+                    if (numberPhone.value.isUpdated) {
+                        const responseContact = await updateContactInfo(token, numberPhone.value.content);
+                        if (!responseContact.ok)
+                            throw new Error(`HTTP error! status: ${responseContact.status}`);
+                    }
 
                     chrome.notifications.create("updatedInfo", {
                             type: "basic",
@@ -185,7 +173,7 @@
                     );
                 } catch(error) {
                     isFormSubmited.value = false;
-                    if (error.code === 400) {
+                    if (error.message.includes('status: 400')) {
                         chrome.notifications.create("canceledInfo", {
                             type: "basic",
                             iconUrl: "/icons/warning.svg",
@@ -197,9 +185,9 @@
                                 type: "basic",
                                 iconUrl: "/icons/warning.svg",
                                 title: `❌ Failure to update user's data ❌`,
-                                message: 'Un probleme est survenu. Veillez réessayer!'
+                                message: 'Un probleme est survenu. Veuillez réessayer!'
                             },
-                            (notificationId) => console.error("Failed to update user's info: ", error)
+                            (notificationId) => console.error("Failed to update info user: ", error)
                         );
                     }
                 }
