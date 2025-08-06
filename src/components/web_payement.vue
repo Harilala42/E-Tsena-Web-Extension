@@ -1,18 +1,18 @@
 <script setup>
-    import { ref, onMounted } from 'vue';
+    import { ref, computed, onMounted } from 'vue';
     import { useRouter } from 'vue-router';
     import { useCounterStore } from '@/stores/currency';
 
     const router = useRouter();
     const sum = useCounterStore();
-    const recaptchaUrl = import.meta.env.VITE_URL_RECATPCHA;
+    const recaptchaUrl = import.meta.env.VITE_URL_RECAPTCHA;
     const paymentMethods = ref([
         { id: 'mvola', name: 'Mvola', icon: '/icons/mvola_lg.png' },
         { id: 'orange money', name: 'Orange Money', icon: '/icons/orange_money_lg.png' }
     ]);
 
     var recaptchaToken = ref(null);
-    var transactionStatus = ref(null);
+    var istransactionInProgress = ref(false);
     var serverCorrelationId = ref(null);
     var transactionId = ref(null);
     var currentCart = ref([]);
@@ -30,23 +30,64 @@
         });
     });
 
+    const isPayButtonEnabled = computed(() =>
+        recaptchaToken.value && !istransactionInProgress.value && selectedMethod.value
+    );
+
+    // Pour vérifier le status d'une transaction
+    const checkTransactionStatus = (token) => {
+        return fetch(import.meta.env.VITE_URL_MVOLASTATUS + serverCorrelationId.value, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+    }
+
+    // Initialisation d'une commande AliExpress
+    const createOrderAE = (referenceId, token) => {
+        return fetch(import.meta.env.VITE_URL_CREATEORDER_AE, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                transactionID: referenceId,
+                shoppingCart: currentCart.value
+            })
+        });
+    }
+
     var pollingInterval = null;
-    const handleTransaction = () => {
+    const handleTransaction = (token) => {
         pollingInterval = setInterval(async () => {
-            await checkTransactionStatus();
-            if (transactionStatus.value === 'completed' || transactionStatus.value === 'failed') 
+            let status = null;
+            const response = await checkTransactionStatus(token);
+            if (!response.ok) {
+                status = 'failed';
+            } else {
+                const data = await response.json();
+                if (data.objectReference)
+                    transactionId.value = data.objectReference;
+                status = data.status;
+            }
+
+            if (status === 'completed' || status === 'failed') 
             {
                 clearInterval(pollingInterval);
                 pollingInterval = null;
-                if (transactionStatus.value === 'completed') {
-                    await createOrderAE(transactionId.value);
-
-                    chrome.notifications.create("successMvola", {
-                        type: "basic",
-                        iconUrl: "/icons/mvola.png",
-                        title: "✅ Successful Mvola Transaction ✅",
-                        message: `Montant ${sum.amountWithDots}MGA payé avec succès.`
-                    });
+                if (status === 'completed') {
+                    chrome.notifications.create("successMvola", 
+                        {
+                            type: "basic",
+                            iconUrl: "/icons/mvola.png",
+                            title: "✅ Successful Mvola Transaction ✅",
+                            message: `Montant ${sum.amountWithDots}MGA payé avec succès.`
+                        }, 
+                        async (notificationId) => await createOrderAE(transactionId.value, token)
+                    );
                     chrome.storage.local.set({ cart: JSON.stringify([]) });
                 } else {
                     chrome.notifications.create("failureMvola", {
@@ -57,7 +98,7 @@
                     });
                 }
                 recaptchaToken.value = null;
-                transactionStatus.value = null;
+                istransactionInProgress.value = false;
                 setTimeout(() => router.push('/shopping_cart'), 3000);
             }
         }, 10000);
@@ -68,7 +109,7 @@
         chrome.storage.local.get(['jwt'], async (result) => {
             if (result.jwt) {
                 const { token } = result.jwt;
-                transactionStatus.value = 'pending';
+                istransactionInProgress.value = true;
 
                 try {
                     const response = await fetch(import.meta.env.VITE_URL_MVOLAINIT, {
@@ -88,77 +129,18 @@
                     const data = await response.json();
                     if (data.serverCorrelationId) {
                         serverCorrelationId.value = data.serverCorrelationId;
-                        handleTransaction();
+                        handleTransaction(token);
                     }
                 } catch(error) {
                     recaptchaToken.value = null;
-                    transactionStatus.value = null;
+                    istransactionInProgress.value = false;
                     console.error(`Error Init transaction: ${error}`);
                     chrome.notifications.create("failureInitMvola", {
                         type: "basic",
                         iconUrl: "/icons/mvola.png",
                         title: "❌ Canceled Mvola Transaction ❌",
                         message: "Impossible d'initiliatiser la transaction 😓."
-                    });
-                }
-            }
-        })
-    }
-
-    // Pour vérifier le status d'une transaction
-    const checkTransactionStatus = async () => {
-        chrome.storage.local.get(['jwt'], async (result) => {
-            if (result.jwt) {
-                const { token } = result.jwt;
-
-                try {
-                    const response = await fetch(import.meta.env.VITE_URL_MVOLASTATUS + serverCorrelationId.value, {
-                        method: 'GET',
-                        headers: {
-                            'Authorization': `Bearer ${token}`,
-                            'Content-Type': 'application/json'
-                        }
-                    })
-                    if (!response.ok)
-                        throw new Error(`Failed to fetch transaction status ${response.status}`);
-                    
-                    const data = await response.json();
-                    if (data.objectReference)
-                        transactionId.value = data.objectReference;
-                    transactionStatus.value = data.status;
-                } catch(error) {
-                    console.warn(`Error fetching transaction status: ${error}`);
-                    transactionStatus.value = 'failed';
-                };
-            }
-        })
-    }
-
-    // Initialisation d'une commande AliExpress
-    const createOrderAE = async (referenceId) => {
-        chrome.storage.local.get(['jwt'], async (result) => {
-            if (result.jwt) {
-                const { token } = result.jwt;
-
-                try {
-                    const response = await fetch(import.meta.env.VITE_URL_CREATEORDER_AE, {
-                        method: 'POST',
-                        headers: {
-                            'Authorization': `Bearer ${token}`,
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            transactionID: referenceId,
-                            shoppingCart: currentCart.value
-                        })
-                    });
-
-                    if (!response.ok)
-                        throw new Error(`HTTP error! status: ${response.status}`);
-
-                    const data = await response.json();
-                } catch(error) {
-                    console.error('Unexpedted Error during Init Order AE: ', error);
+                    }, (notificationId) => router.push('/shopping_cart'));
                 }
             }
         })
@@ -202,12 +184,12 @@
         <iframe class="recaptcha" :src="recaptchaUrl" width="100%" height="125px"/>
         <div class="actions">
             <router-link class="cancel" to="/shopping_cart">Annuler</router-link>
-            <button :disabled="!recaptchaToken || transactionStatus || !selectedMethod"
-                :class="{ 'enabled_pay': recaptchaToken && !transactionStatus && selectedMethod, 'unenabled_pay': !recaptchaToken || transactionStatus || !selectedMethod }"
+            <button :disabled="!isPayButtonEnabled"
+                :class="{ 'enabled_pay': isPayButtonEnabled, 'unenabled_pay': !isPayButtonEnabled }"
                 @click="initTransaction"
             >
                 <p>Payer</p>
-                <span v-if="transactionStatus === 'pending'" class="load_pay"></span>
+                <span v-if="istransactionInProgress" class="load_pay"></span>
                 <img v-else src="/icons/arrow_right.svg" alt="payer maintenant">
             </button>
         </div>
