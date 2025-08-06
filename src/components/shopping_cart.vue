@@ -101,6 +101,7 @@
                 rates: item.ae_item_base_info_dto.avg_evaluation_rating,
                 sku_item: skusInfo,
                 order_model: getInfoSku(skusInfo[0]),
+                package_info: item.package_info_dto,
                 selectedSkuIndex: 0,
                 number_item: 1
             });

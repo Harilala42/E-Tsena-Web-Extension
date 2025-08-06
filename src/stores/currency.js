@@ -50,12 +50,26 @@ export const useCounterStore = defineStore('convertUSDtoMGA', {
                             product_count: item.number_item,
                             sku_attr: item.sku_item[item.selectedSkuIndex].sku_attr,
                             logistics_service_name: 'CAINIAO_STANDARD',
+                            description: item.details,
+                            img_url: item
+                                .sku_item[item.selectedSkuIndex]
+                                ?.ae_sku_property_dtos
+                                ?.ae_sku_property_d_t_o[0]
+                                ?.sku_image || item.img_default,
+                            price: (() => {
+                                const price = item.sku_item[item.selectedSkuIndex].sku_price;
+                                const salePrice = item.sku_item[item.selectedSkuIndex].offer_sale_price || price;
+                                const isOnSale = salePrice < price;
+
+                                return (isOnSale ? Number(salePrice).toFixed(2) : Number(price).toFixed(2));
+                            })(),
+                            package_info: item.package_info,
                             order_memo: ''
                         }));
         
                         resolve (currentCart);
-                    } catch(error) {
-                        reject('Error preparing Order AE');
+                    } catch(err) {
+                        reject(`Failed to prepare Order AE: ${err}`);
                     }
                 })
             });

@@ -23,14 +23,14 @@
                         price = info.is_on_sale ? info.sale_price : info.price;
 
                     return sum + parseFloat(price) * item.number_item;
-                }, 0).toFixed(2);
-                margin.value = totalPrice.value * 15 / 100;
+                }, 0);
+                margin.value = totalCart.value * 0.15;
             };
         });
     });
 
     const totalPrice = computed(() => {
-        return Number(totalCart.value) + Number(margin.value.toFixed(2)) + Number(priceDelivery.value.toFixed(2));
+        return Number(totalCart.value) + Number(margin.value) + Number(priceDelivery.value);
     });
 
     watch(payOrder, async (newVal) => {
