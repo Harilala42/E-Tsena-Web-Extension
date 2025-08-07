@@ -34,6 +34,26 @@
         recaptchaToken.value && !istransactionInProgress.value && selectedMethod.value
     );
 
+    const notifySuccess = (message, callback) => {
+        chrome.notifications.create("successMvola", 
+        {
+            type: "basic",
+            iconUrl: "/icons/mvola.png",
+            title: "✅ Successful Mvola Transaction ✅",
+            message
+        }, callback);
+    }
+
+    const notifyFailure = (message, callback) => {
+        chrome.notifications.create("failureMvola", 
+        {
+            type: "basic",
+            iconUrl: "/icons/mvola.png",
+            title: "❌ Failure Mvola Transaction ❌",
+            message
+        }, callback);
+    }
+
     // Pour vérifier le status d'une transaction
     const checkTransactionStatus = (token) => {
         return fetch(import.meta.env.VITE_URL_MVOLASTATUS + serverCorrelationId.value, {
@@ -60,49 +80,87 @@
         });
     }
 
-    var pollingInterval = null;
-    const handleTransaction = (token) => {
-        pollingInterval = setInterval(async () => {
-            let status = null;
-            const response = await checkTransactionStatus(token);
-            if (!response.ok) {
-                status = 'failed';
-            } else {
-                const data = await response.json();
-                if (data.objectReference)
-                    transactionId.value = data.objectReference;
-                status = data.status;
+    const resetState = () => {
+        recaptchaToken.value = null;
+        istransactionInProgress.value = false;
+    }
+
+    var orderInterval = null;
+    const handleOrderCreation = (token) => {
+        let isOrderCreated = false;
+        const startTime = Date.now();
+        orderInterval = setInterval(async () => {
+            if (Date.now() - startTime > 2 * 60 * 1000) {
+                clearInterval(orderInterval);
+                orderInterval = null;
+                return console.error('Order creation timed out.');
             }
 
-            if (status === 'completed' || status === 'failed') 
-            {
+            if (isOrderCreated) return ;
+            isOrderCreated = true;
+
+            try {
+                const res = await createOrderAE(transactionId.value, token);
+                if (res.status === 200) {
+                    clearInterval(orderInterval);
+                    orderInterval = null;
+
+                    resetState();
+                    notifySuccess(
+                        `Montant ${sum.amountWithDots}MGA payé avec succès.`,
+                        () => {
+                            chrome.storage.local.set({ cart: JSON.stringify([]) });
+                            setTimeout(() => router.push('/shopping_cart'), 3000);
+                        }
+                    );
+                }
+            } catch(err) {
+                console.error('Failed to create order: ', err);
+            } finally {
+                isOrderCreated = false;
+            }
+        }, 5000);
+    }
+
+    var pollingInterval = null;
+    const handleTransaction = (token) => {
+        const startTime = Date.now();
+        pollingInterval = setInterval(async () => {
+            if (Date.now() - startTime > 3 * 60 * 1000) {
                 clearInterval(pollingInterval);
                 pollingInterval = null;
-                if (status === 'completed') {
-                    chrome.notifications.create("successMvola", 
-                        {
-                            type: "basic",
-                            iconUrl: "/icons/mvola.png",
-                            title: "✅ Successful Mvola Transaction ✅",
-                            message: `Montant ${sum.amountWithDots}MGA payé avec succès.`
-                        }, 
-                        async (notificationId) => await createOrderAE(transactionId.value, token)
-                    );
-                    chrome.storage.local.set({ cart: JSON.stringify([]) });
-                } else {
-                    chrome.notifications.create("failureMvola", {
-                        type: "basic",
-                        iconUrl: "/icons/mvola.png",
-                        title: "❌ Failure Mvola Transaction ❌",
-                        message: 'Echec de la Transaction! Annulation de la commande.'
-                    });
+
+                resetState();
+                return notifyFailure('Transaction trop longue ⏳.', null);
+            }
+
+            try {
+                const res = await checkTransactionStatus(token);
+                if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+
+                const data = await res.json();
+                if (data.objectReference) transactionId.value = data.objectReference;
+
+                const status = data.status;
+                if (status === 'completed' || status === 'failed') {
+                    clearInterval(pollingInterval);
+                    pollingInterval = null;
+
+                    if (status === 'completed') {
+                        handleOrderCreation(token);
+                    } else {
+                        resetState();
+                        notifyFailure(
+                            'Echec de la Transaction! Annulation de la commande 😓.',
+                            () => setTimeout(() => router.push('/shopping_cart'), 3000)
+                        );                    
+                    }
                 }
-                recaptchaToken.value = null;
-                istransactionInProgress.value = false;
-                setTimeout(() => router.push('/shopping_cart'), 3000);
+            } catch (error) {
+                console.error("Error checking transaction status:", error);
             }
         }, 10000);
-    }
+    };
 
     // Pour initialiser une transaction avec Mvola
     const initTransaction = () => {
@@ -132,15 +190,13 @@
                         handleTransaction(token);
                     }
                 } catch(error) {
-                    recaptchaToken.value = null;
-                    istransactionInProgress.value = false;
                     console.error(`Error Init transaction: ${error}`);
-                    chrome.notifications.create("failureInitMvola", {
-                        type: "basic",
-                        iconUrl: "/icons/mvola.png",
-                        title: "❌ Canceled Mvola Transaction ❌",
-                        message: "Impossible d'initiliatiser la transaction 😓."
-                    }, (notificationId) => router.push('/shopping_cart'));
+
+                    resetState();
+                    notifyFailure(
+                        "Impossible d'initier la transaction 😓.",
+                        () => setTimeout(() => router.push('/shopping_cart'), 3000)
+                    );
                 }
             }
         })
