@@ -65,7 +65,7 @@
                         });
 
                         if (!response.ok)
-                            return console.error(`HTTP error! status: ${response.status}`);
+                            throw new Error(`HTTP error! status: ${response.status}`);
 
                         const data = await response.json();
                         

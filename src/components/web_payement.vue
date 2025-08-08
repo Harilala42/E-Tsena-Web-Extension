@@ -5,7 +5,7 @@
 
     const router = useRouter();
     const sum = useCounterStore();
-    const recaptchaUrl = import.meta.env.VITE_URL_RECAPTCHA;
+    const recaptchaUrl = import.meta.env.VITE_URL_TURNSTILE;
     const paymentMethods = ref([
         { id: 'mvola', name: 'Mvola', icon: '/icons/mvola_lg.png' },
         { id: 'orange money', name: 'Orange Money', icon: '/icons/orange_money_lg.png' }
@@ -25,7 +25,7 @@
         currentCart.value = await sum.prepareOrder();
 
         window.addEventListener("message", (event) => {
-            if (event.data?.type === "recaptcha-token")
+            if (event.data?.type === "turnstileToken")
                 recaptchaToken.value = event.data.token;
         });
     });
