@@ -635,7 +635,7 @@
                     .disabledAddItem {
                         @include shared-addItem;
                         background-color: #CA6037;
-                        pointer-events: none;
+                        &:hover { cursor: not-allowed; }
                     }
                 }
             }
