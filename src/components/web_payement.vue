@@ -2,9 +2,12 @@
     import { ref, computed, onMounted } from 'vue';
     import { useRouter } from 'vue-router';
     import { useCounterStore } from '@/stores/currency';
+    import { useOrderStore } from '@/stores/order';
 
     const router = useRouter();
     const sum = useCounterStore();
+    const order = useOrderStore();
+    
     const recaptchaUrl = import.meta.env.VITE_URL_TURNSTILE;
     const paymentMethods = ref([
         { id: 'mvola', name: 'Mvola', icon: '/icons/mvola_lg.png' },
@@ -22,7 +25,7 @@
 
     onMounted(async () => {
         chrome.storage.local.set({ 'e_tsena_state': 'checkout' });
-        currentCart.value = await sum.prepareOrder();
+        currentCart.value = await order.prepareOrder();
 
         window.addEventListener("message", (event) => {
             if (event.data?.type === "turnstileToken")

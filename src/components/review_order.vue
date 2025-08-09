@@ -1,107 +1,12 @@
 <script setup>
     import { ref, computed, onMounted, watch } from 'vue';
     import { useCounterStore } from '@/stores/currency';
+    import { useOrderStore } from '@/stores/order';
     import { useRouter } from 'vue-router';
 
     const router = useRouter();
     const sum = useCounterStore();
-
-    var totalCart = ref(0);
-    var priceDelivery = ref(0);
-    var margin = ref(0);
-    var payOrder = ref(false);
-
-    onMounted(() => {
-        chrome.storage.local.get(['cart'], async (result) => {
-            if (result.cart) {
-                const cartData = await JSON.parse(result.cart);
-
-                getDeliveryOptions();
-
-                totalCart.value = cartData.reduce((sum, item) => {
-                    let info = item.order_model,
-                        price = info.is_on_sale ? info.sale_price : info.price;
-
-                    return sum + parseFloat(price) * item.number_item;
-                }, 0);
-                margin.value = totalCart.value * 0.15;
-            };
-        });
-    });
-
-    const totalPrice = computed(() => {
-        return Number(totalCart.value) + Number(margin.value) + Number(priceDelivery.value);
-    });
-
-    watch(payOrder, async (newVal) => {
-        if (newVal && !sum.is_updated) {
-            const usd = totalPrice.value.toFixed(2);
-            await sum.convertCurrency(usd);
-        }
-    });
-
-    const getDeliveryOptions = () => {
-        chrome.storage.local.get(['cart', 'jwt'], async (result) => {
-            if (result.cart && result.jwt) {
-                const { token } = result.jwt;
-                const cartData = await JSON.parse(result.cart);
-
-                let totalFreight = 0;
-                let notificationCount = 0;
-
-                const requestServer = cartData.map(async (item, id) => {
-                    try {
-                        const response = await fetch(import.meta.env.VITE_URL_DELIVERYFREIGHT_AE, {
-                            method: 'POST',
-                            headers: {
-                                'Authorization': `Bearer ${token}`,
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify({
-                                itemId: item.item_id,
-                                itemNumber: item.number_item,
-                                selectedSkuId: item.sku_item[item.selectedSkuIndex].sku_id
-                            })
-                        });
-
-                        if (!response.ok)
-                            throw new Error(`HTTP error! status: ${response.status}`);
-
-                        const data = await response.json();
-                        
-                        const info = data.info.aliexpress_ds_freight_query_response;
-                        const options = info.result.delivery_options.delivery_option_d_t_o;
-                        
-                        totalFreight += options.reduce((sum, opt) => {
-                            return opt.code === 'CAINIAO_STANDARD'
-                                ? sum + Number(opt.shipping_fee_cent || 0)
-                                : sum;
-                        }, 0);
-                    } catch(error) {
-                        console.error(`Failed to get delivery price ${item.item_id}:`, error);
-                        
-                        if (notificationCount == 0) {
-                            notificationCount += 1;
-                            chrome.notifications.create("failureGetDeliveryPrice", {
-                                type: "basic",
-                                iconUrl: "/icons/warning.svg",
-                                title: "🔃 Please Try Again 🔃",
-                                message: "Un problème réseau est survenu"
-                            }, (notificationId) => {
-                                chrome.storage.local.set({ 'purchaseIt': false });
-                            });
-                        }
-                    }
-                });
-
-                await Promise.all(requestServer);
-                priceDelivery.value += totalFreight;
-                payOrder.value = true;
-            };
-        });
-    };
-
-    const cancelOrder = async () => await chrome.storage.local.set({ 'purchaseIt': false });
+    const order = useOrderStore();
 </script>
 
 <template>
@@ -110,19 +15,28 @@
             <div class="cost">
                 <div class="calcul">
                     <div class="number">
-                        <div class="fret">
-                            <p class="type">Frais de Livraison par AliExpress</p>
-                            <p class="price">{{ !payOrder ? '⏳...' : '$' + priceDelivery.toFixed(2) }}</p>
-                        </div>
-                        <div class="commission">
-                            <p class="type">15% de commission</p>
-                            <div class="value">
-                                <p class="price">${{ margin.toFixed(2) }}</p>
-                                <img src="/icons/choose.svg" alt="info commission" title="Une commission de 15% supplèmentaire sur chaque achat dont les 3.5% de frais de transaction Mvola.">
+                        <div class="bill">
+                            <div class="details">
+                                <p class="type">Total Panier</p>
+                                <p class="price">{{ '$' + order.totalCart.toFixed(2) }}</p>
                             </div>
+                            <p class="further">+</p>
+                        </div>
+                        <div class="bill">
+                            <div class="details">
+                                <p class="type">Livraison AliExpress</p>
+                                <p class="price">{{ '$' + order.totalFreight.toFixed(2) }}</p>
+                            </div>
+                            <p class="further">+</p>
+                        </div>
+                        <div class="bill" title="Une commission de 15% supplèmentaire sur chaque achat dont les 3.5% de frais de transaction Mvola.">
+                            <div class="value">
+                                <p class="type">15% de commission</p>
+                                <p class="price">${{ order.margin.toFixed(2) }}</p>
+                            </div>
+                            <img src="/icons/choose.svg" alt="info commission">
                         </div>
                     </div>
-                    <p class="further">+</p>
                 </div>
                 <div class="checkout-bar"></div>
             </div>
@@ -139,20 +53,14 @@
                 <div class="total">
                     <div class="overcome">
                         <p class="utils">Total :</p>
-                        <p>${{ totalPrice.toFixed(2) }}</p><p class="utils">ou</p>
+                        <p>${{ order.totalPrice.toFixed(2) }}</p><p class="utils">ou</p>
                     </div>
-                    <p class="ariary">
-                        {{ sum.amount === 0 || !payOrder ? '⏳...' : sum.amountWithDots + ' MGA' }}
-                    </p>
+                    <p class="ariary">{{ sum.amountWithDots + ' MGA' }}</p>
                 </div>
-                <img src="/icons/download.svg" alt="télécharger">
             </div>
             <div class="check_out">
-                <button class="cancel" @click="cancelOrder">Annuler</button>
-                <button :disabled="!payOrder || !sum.is_updated"
-                    :class="{'purchase': payOrder && sum.is_updated, 'disabled-purchase': !payOrder || !sum.is_updated}"
-                    @click="router.push('/web_payement')"
-                >Payer</button>
+                <button class="cancel" @click="sum.is_updated = false">Annuler</button>
+                <button class="purchase" @click="router.push('/web_payement')">Payer</button>
             </div>
         </div>
     </div>
@@ -194,30 +102,31 @@
                         display: flex;
                         flex-direction: column;
                         justify-content: flex-start;
+                        margin-bottom: 5px;
                         width: 150px;
+                        gap: 5px;
 
-                        .type {
-                            display: flex;
-                            font-size: 12px;
-                            @include font-shared;
-                            flex-wrap: wrap;
-                        }
-
-                        .price {
-                            font-size: 15px;
-                            @include font-shared;
-                        }
-
-                        .value {
+                        .bill {
                             display: flex;
                             flex-direction: row;
                             align-items: center;
-                            justify-content: flex-start;
-                            gap: 5px;
+                            justify-content: space-between;
+
+                            .type {
+                                display: flex;
+                                font-size: 12px;
+                                @include font-shared;
+                                flex-wrap: wrap;
+                            }
+
+                            .price {
+                                font-size: 15px;
+                                @include font-shared;
+                            }
 
                             img {
-                                width: 15px;
-                                height: 15px;
+                                width: 18px;
+                                height: 18px;
                             }
                         }
                     }
@@ -232,7 +141,7 @@
                     width: 150px;
                     height: 1px;
                     background-color: style.$text-color;
-                    margin-bottom: 10px;
+                    margin-bottom: 5px;
                 }
             }
 
@@ -275,7 +184,7 @@
 
         .final {
             @include display-shared;
-            margin-bottom: 20px;
+            margin-bottom: 25px;
 
             .result {
                 display: flex;
@@ -294,19 +203,19 @@
                         gap: 5px;
 
                         .utils {
-                            font-size: 15px;
+                            font-size: 18px;
                             font-family: style.$font-Poppins-Medium;
                             color: style.$text-color;
                         }
 
                         p:nth-child(2) {
-                            font-size: 15px;
+                            font-size: 18px;
                             @include font-shared;
                         }
                     }
 
                     .ariary {
-                        font-size: 15px;
+                        font-size: 18px;
                         @include font-shared;
                         border: 1px solid style.$primary-color;
                         border-radius: 5px;
@@ -343,24 +252,13 @@
                     background-color: transparent;
                 }
 
-                @mixin purchase_shared {
+                .purchase {
                     border: none;
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                }
-
-                .purchase {
-                    @include purchase_shared;
-                    @include button-shared;
                     background-color: style.$primary-color;
-                }
-
-                .disabled-purchase {
-                    @include purchase_shared;
                     @include button-shared;
-                    background-color: #CA6037;
-                    cursor: wait;
                 }
             }
         }

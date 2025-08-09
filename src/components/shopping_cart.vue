@@ -1,21 +1,24 @@
 <script setup>
     import { ref, computed, onMounted, watch } from 'vue';
     import { useCounterStore } from '@/stores/currency';
+    import { useOrderStore } from '@/stores/order';
     import ReviewItem from './review_order.vue';
 
     const sum = useCounterStore();
+    const order = useOrderStore();
 
     var selectedItems = ref([]);
     const showFullText = ref({});
     var showNumber = ref(-1);
-    var purchaseIt = ref(false);
     var addItem = ref(false);
+    var purchaseIt = ref(false);
     var item_id = ref(-1);
     var price_id = ref(-1);
     var url = ref('');
 
     onMounted(() => {
         let cartData = [];
+        sum.is_updated = false;
 
         chrome.storage.local.set({ 'e_tsena_state': 'shopping-cart' });
 
@@ -29,15 +32,9 @@
             if (details.cart) {
                 cartData = await JSON.parse(details.cart.newValue);
                 selectedItems.value = cartData;
-                sum.is_updated = false;
                 console.log('Cart Updated');
-            } else if (details.purchaseIt)
-                purchaseIt.value = details.purchaseIt.newValue;
+            }
         });
-    });
-
-    watch(purchaseIt, (newVal) => {
-        chrome.storage.local.set({ 'purchaseIt': newVal });
     });
 
     watch(selectedItems, (newVal) => {
@@ -50,6 +47,10 @@
             selectedItems.value[price_id.value].number_item = numberItem(newVal[price_id.value]);
         price_id.value = -1;
     }, { deep: true });
+
+    const isPurchaseButtonEnabled = computed(() => {
+        return selectedItems.value.length !== 0 && !addItem.value && !purchaseIt.value
+    });
 
     const truncatedUrl = computed(() => {
         return url.value.length > 20 ? url.value.substring(0, 30) : url.value;
@@ -288,21 +289,48 @@
     const sendIdToServer = (itemId) => {
         return new Promise((resolve) => {
             chrome.storage.local.get(['jwt'], async (result) => {
-                if (result.jwt) {
-                    const { token } = result.jwt;
+                if (!result.jwt) return ;
 
-                    resolve(fetch(import.meta.env.VITE_URL_INFOPRODUCT_AE, {
-                        method: 'POST',
-                        headers: {
-                            'Authorization': `Bearer ${token}`,
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({ itemId: itemId })
-                    }));
-                }
+                const { token } = result.jwt;
+
+                resolve(fetch(import.meta.env.VITE_URL_INFOPRODUCT_AE, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ itemId: itemId })
+                }));
             });
         });
     };
+
+    // Affichage du total de la commande
+    const purchaseOrder = () => {
+        chrome.storage.local.get(['cart', 'jwt'], async (result) => {
+            if (!result.cart || !result.jwt) return ;
+
+            const { token } = result.jwt;
+            const cartData = await JSON.parse(result.cart);
+            purchaseIt.value = true;
+
+            try {
+                await order.getBillOrder(token, cartData);
+                const usd = order.totalPrice;
+                sum.convertCurrency(usd);
+            } catch(err) {
+                console.error(err);
+                chrome.notifications.create("failurePurchase", {
+                    type: "basic",
+                    iconUrl: "/icons/warning.svg",
+                    title: '❌ We encountered a problem ❌',
+                    message: 'Un problème est survenu. Veuillez réessayer!'
+                });
+            } finally {
+                purchaseIt.value = false;
+            }
+        });
+    }
 
     // Obtention de la date d'aujourd'hui
     const formatDate = (timestamp) => {
@@ -346,8 +374,8 @@
                 <div class="btnSearch">
                     <img src="/icons/close_search.svg" v-if="url !== ''" alt="cart" @click="url = ''">
                     <button @click="getProductInfo"
-                        :class="{ 'addItem': !purchaseIt || !addItem, 'disabledAddItem': purchaseIt || addItem }" 
-                        :disabled="purchaseIt || addItem"
+                        :class="{ 'addItem': !sum.is_updated || !addItem, 'disabledAddItem': sum.is_updated || addItem }" 
+                        :disabled="sum.is_updated || addItem"
                     >
                         <img src="/icons/paste.svg" alt="cart"><p>Ajouter</p>
                     </button>
@@ -359,11 +387,11 @@
             </div>
             <div class="selectedProduct" v-else>
                 <div class="item" v-for="item in selectedItems" :key="selectedItems.indexOf(item)">
-                    <div class="models" @click="!purchaseIt ? item_id = selectedItems.indexOf(item) : item_id = -1">
-                        <div :class="{ 'img_models_shown': !purchaseIt, 'img_models_hidden': purchaseIt }" 
+                    <div class="models" @click="!sum.is_updated ? item_id = selectedItems.indexOf(item) : item_id = -1">
+                        <div :class="{ 'img_models_shown': !sum.is_updated, 'img_models_hidden': sum.is_updated }" 
                             :style="{ 'background-image': item.img_url ? `url('${item.img_url}')` : 'none' }"
                             :aria-label="item.item_id">
-                            <img src="/icons/choose.svg" v-if="!purchaseIt" alt="choose" title="Choisir une option">
+                            <img src="/icons/choose.svg" v-if="!sum.is_updated" alt="choose" title="Choisir une option">
                         </div>
                     </div>
                     <div class="info_product">
@@ -388,14 +416,14 @@
                                 <div class="number">
                                     <p class="price">${{ getItemPrice(item) }}</p><p>X</p>
                                     <div :class="{'nb_item_enabled': selectedItems.indexOf(item) !== showNumber, 'nb_item_unabled': selectedItems.indexOf(item) === showNumber}">
-                                        <p :class="{ 'nb_display': !purchaseIt }">{{ item.number_item }}</p>
+                                        <p :class="{ 'nb_display': !sum.is_updated }">{{ item.number_item }}</p>
                                         <input type="number" class="nb_input" 
-                                            v-if="!purchaseIt" v-model="item.number_item" 
+                                            v-if="!sum.is_updated" v-model="item.number_item" 
                                             :value="numberItem(item)" 
                                             @input="price_id = selectedItems.indexOf(item)"
                                             :min="1"
                                         >
-                                        <button class="ajust_nb" v-if="!purchaseIt" 
+                                        <button class="ajust_nb" v-if="!sum.is_updated" 
                                             @click="showNumber < 0 ? showNumber = selectedItems.indexOf(item) : showNumber !== selectedItems.indexOf(item) ? showNumber = selectedItems.indexOf(item) : showNumber = -1"
                                         >
                                             <img src="/icons/pencil.svg" alt="adjust number" width="18px" height="18px">
@@ -410,14 +438,14 @@
                         </div>
                     </div>
                     <img src="/icons/delete.svg" class="removeItem" alt="delete"
-                        v-if="!showFullText[item.item_id] && !purchaseIt"
+                        v-if="!showFullText[item.item_id] && !sum.is_updated"
                         @click="selectedItems = selectedItems.filter(id => id.item_id !== item.item_id)"
                     >
                 </div>
             </div>
         </div>
         <div class="horizontal-bar"></div>
-        <div class="review" v-if="!purchaseIt">
+        <div class="review" v-if="!sum.is_updated">
             <div class="total">
                 <p>Total :</p>
                 <p class="total_price">${{ totalPrice }}</p>
@@ -425,10 +453,15 @@
                 <p class="txt_utils">15% de<br> commission</p>
             </div>
             <button 
-                :class="{'buyIt': selectedItems.length !== 0 && !addItem, 'disabled-buyIt': selectedItems.length === 0 || addItem }" 
-                :disabled="selectedItems.length === 0 || addItem"
-                @click="purchaseIt = !purchaseIt"
-            ><p>Acheter</p>
+                :class="{
+                    'buyIt': isPurchaseButtonEnabled, 
+                    'disabled-buyIt': !isPurchaseButtonEnabled
+                }" 
+                :disabled="!isPurchaseButtonEnabled"
+                @click="purchaseOrder()"
+            >
+                <p v-if="!purchaseIt">Acheter</p>
+                <span v-else class="load_purchase"></span>
             </button>
         </div>
         <ReviewItem v-else></ReviewItem>
@@ -466,7 +499,6 @@
         background-color: style.$background-color;
         min-width: 400px;
         min-height: 500px;
-        max-height: 650px;
         padding: 0;
 
         .title {
@@ -906,9 +938,22 @@
             }
 
             .disabled-buyIt {
-                @include shared-btn;
-                pointer-events: none;
+                display: flex;
+                align-items: center;
+                justify-content: center;
                 background-color: #CA6037;
+                @include shared-btn;
+
+                .load_purchase {
+                    width: 12px;
+                    height: 12px;
+                    border: 2px solid #f3f3f3;
+                    border-top: 2px solid #3498db;
+                    border-radius: 50%;
+                    animation: spin 1s linear infinite;
+                }
+
+                &:hover { cursor: not-allowed; }
             }
         }
 
@@ -970,5 +1015,10 @@
                 &:hover { cursor: pointer; }
             }
         }
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
     }
 </style>
