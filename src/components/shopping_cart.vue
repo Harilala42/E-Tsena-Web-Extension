@@ -903,6 +903,7 @@
                 }
 
                 p:first-child {
+                    font-weight: 800;
                     @include shared_p;
                     font-family: style.$font-MontserratAlternates-Regular;
                 }

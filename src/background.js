@@ -21,7 +21,11 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 chrome.runtime.onInstalled.addListener((details) => {
     if (details.reason === "install") {
         console.log("Extension installed");
-        chrome.storage.local.set({ 'isAlreadyAuthorize': 'denied' });
+        chrome.storage.local.set({ 'isAlreadyAuthorize': 'denied' }, () => {
+            setTimeout(() => {
+                chrome.tabs.create({ url: "https://fr.aliexpress.com/" });
+            }, 2000);
+        });
     } else if (details.reason === "update")
         console.log("Extension updated");
     else if (details.reason === "chrome_update")

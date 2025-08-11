@@ -236,9 +236,9 @@
                 gap: 10px;
 
                 @mixin button-shared {
-                    width: 75px;
-                    height: 30px;
-                    font-size: 10px;
+                    width: 80px;
+                    height: 35px;
+                    font-size: 12px;
                     border-radius: 10px;
                     color: style.$text-color;
                     text-decoration: none;
