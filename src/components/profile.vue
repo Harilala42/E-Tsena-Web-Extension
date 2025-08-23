@@ -315,7 +315,7 @@
 
                 .text {
                     font-weight: 800;
-                    font-size: 22px;
+                    font-size: 20px;
                     color: style.$text-color;
                     font-family: style.$font-MontserratAlternates-Bold;
                 }

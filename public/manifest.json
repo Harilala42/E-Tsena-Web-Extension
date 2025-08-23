@@ -1,7 +1,7 @@
 {
     "manifest_version": 3,
     "name": "E-Tsena",
-    "description": "Web Extension pour commander sur Aliexpress depuis Madagascar",
+    "description": "Web Extension pour commander sur AliExpress depuis Madagascar",
     "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEApl8D2FBbL5lLbJQlDmvEF0W667GqB79TwXiGu9pPPQ3El67qfo+PIKSJwP/SkePCBW1mmxLEpQ0U/yXhsY8fhd8qDiVIKz1Y9PTk2GvD/G+SwZkDPHwGcZ4RG3UAQvnwaMqgQHzn1PvMIn2M3DYpB97GzX2UOOxovNNoFhgKpQ0kX9zjAen06vd0nONSvLRHEm3W2iZZdv73ZrxIIjueZA2/gljeH59dJNfPanPxgjM/0o2MqlhA1h/no8dGE5r+G8N20AxmCuhXmu2jhee2S5DzGPHGcJ/05wKSM7GN8P4lHNPqOqG37/M/GDHZFHO77k++QjuodQqBuW+eMDFaDQIDAQAB",
     "version": "1.0",
     "action": {

@@ -1,5 +1,4 @@
 <script setup>
-    import { ref, computed, onMounted, watch } from 'vue';
     import { useCounterStore } from '@/stores/currency';
     import { useOrderStore } from '@/stores/order';
     import { useRouter } from 'vue-router';

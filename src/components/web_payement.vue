@@ -134,7 +134,10 @@
                 pollingInterval = null;
 
                 resetState();
-                return notifyFailure('Transaction trop longue ⏳.', null);
+                return notifyFailure(
+                    'Transaction trop longue ⏳.',
+                    () => setTimeout(() => router.push('/shopping_cart'), 3000)
+                );
             }
 
             try {

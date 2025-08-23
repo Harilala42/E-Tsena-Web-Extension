@@ -92,7 +92,8 @@
             const url = 'https://accounts.google.com/o/oauth2/auth' +
                 '?client_id=' + client_id +
                 '&response_type=code' +
-                '&access_type=offline' +
+                '&access_type=offline' +       
+                '&prompt=consent' + 
                 '&redirect_uri=' + redirect_uri +
                 '&scope=' + scopes;
 
