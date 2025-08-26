@@ -40,11 +40,15 @@
     const authentication = async () => {
         try {
             statusAuth.value = 'load';
-            const token = await getJWTAuthentication();
+            const data = await getJWTAuthentication();
+            const token = {
+                token: data.token,
+                expireTime: new Date().getTime() + data.expireTime * 1000,
+                userInfo: data.userInfo
+            };
 
             chrome.storage.local.set({
                 'jwt': token,
-                'isAlreadyRefreshed': 'no',
                 'isAlreadyAuthorize': 'no'
             });
             chrome.notifications.create("successAuth", {
@@ -98,9 +102,9 @@
                                 body: JSON.stringify({ code: code })
                             });
                             if (!res.ok) reject(`HTTP error! status: ${res.status}`);
-                            const data = await res.json();
+                            const authData = await res.json();
 
-                            resolve(data);
+                            resolve(authData);
                         } catch(err) {
                             reject(`Error fetching JWT: ${err.message}`);
                         }
