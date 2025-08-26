@@ -40,37 +40,22 @@
     const authentication = async () => {
         try {
             statusAuth.value = 'load';
-            const code = await getAuthorizationCode();
+            const token = await getJWTAuthentication();
 
-            const response = await sendCodeToServer(code);
-            if (!response.ok)
-                throw new Error(`HTTP error! status: ${response.status}`);
-
-            const data = await response.json();
-            if (data.token) {
-                const token = {
-                    token: data.token,
-                    expireTime: new Date().getTime() + data.expireTime * 1000,
-                    userInfo: data.userInfo
-                };
-                chrome.storage.local.set({
-                        'jwt': token,
-                        'isAlreadyRefreshed': 'no',
-                        'isAlreadyAuthorize': 'no'
-                    }, () => {
-                        console.log('JWT successfully stored');
-                        chrome.notifications.create("successAuth", {
-                            type: "basic",
-                            iconUrl: "/icons/check_circle.svg",
-                            title: "✅ Successful Google Authentication ✅",
-                            message: `Bienvenue ${token.userInfo.name} 😄.`
-                        });
-                    }
-                );
-            } else
-                console.error('JWT from server is required');
+            chrome.storage.local.set({
+                'jwt': token,
+                'isAlreadyRefreshed': 'no',
+                'isAlreadyAuthorize': 'no'
+            });
+            chrome.notifications.create("successAuth", {
+                type: "basic",
+                iconUrl: "/icons/check_circle.svg",
+                title: "✅ Successful Google Authentication ✅",
+                message: `Bienvenue ${token.userInfo.name} 😄.`
+            });
         } catch (error) {
             statusAuth.value = 'identity';
+            console.error('Error Authentication: ', error);
             chrome.notifications.create("failureAuth", {
                 type: "basic",
                 iconUrl: "/icons/warning.svg",
@@ -81,7 +66,7 @@
     };
 
     // Obtention d'un code de Google Server
-    const getAuthorizationCode = () => {
+    const getJWTAuthentication = () => {
         return new Promise((resolve, reject) => {
             let manifest = chrome.runtime.getManifest();
 
@@ -99,24 +84,31 @@
 
             chrome.identity.launchWebAuthFlow(
                 { url: url, interactive: true },
-                (redirect_uri) => {
-                    if (chrome.runtime.lastError)
-                        reject(`Error getting code: ${chrome.runtime.lastError.message}`);
+                async (redirect_uri) => {
+                    if (chrome.runtime.lastError) reject(`Error getting code: ${chrome.runtime.lastError.message}`);
 
-                    const urlParams = new URLSearchParams(new URL(redirect_uri).search);
-                    const authorizationCode = urlParams.get("code");
-                    resolve(authorizationCode);
+                    const url = new URL(redirect_uri);
+                    const code = url.searchParams.get('code');
+
+                    if (code) {
+                        try {
+                            const res = await fetch(import.meta.env.VITE_URL_OAUTH20_GOOGLE, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ code: code })
+                            });
+                            if (!res.ok) reject(`HTTP error! status: ${res.status}`);
+                            const data = await res.json();
+
+                            resolve(data);
+                        } catch(err) {
+                            reject(`Error fetching JWT: ${err.message}`);
+                        }
+                    } else {
+                        reject('No code returned from Google');
+                    }
                 }
             );
-        });
-    };
-
-    // Envoie du code vers le server
-    const sendCodeToServer = (code) => {
-        return fetch(import.meta.env.VITE_URL_OAUTH20_GOOGLE, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ code: code })
         });
     };
 
@@ -139,19 +131,23 @@
         <img src="/icons/e-tsena_lg_v.png" alt="brand" class="brand">
         <div class="login">
             <img src="/icons/login.svg" alt="login">
-            <h1>login</h1>
+            <h1>Connexion</h1>
         </div>
-        <div :class="{ 'disabled-customBtn': statusAuth != 'identity', 'customBtn': statusAuth == 'identity' }" @click="authentication">
+        <button @click="authentication"
+            :class="{ 'disabled-customBtn': statusAuth != 'identity', 'customBtn': statusAuth == 'identity' }"
+        >
             <span class="icon" id="google"></span>
             <span class="btnText">
                 {{ statusAuth == 'load' ? 'Connexion en cours...' : 'Se connecter avec Google' }}
             </span>
             <span v-if="statusAuth == 'load'" class="spinner"></span>
-        </div>
-        <div :class="{ 'disabled-customBtn': statusAuth != 'authorization', 'customBtn': statusAuth == 'authorization' }" @click="authorization">
+        </button>
+        <button @click="authorization"
+            :class="{ 'disabled-customBtn': statusAuth != 'authorization', 'customBtn': statusAuth == 'authorization' }"
+        >
             <span class="icon" id="aliexpress"></span>
             <span class="btnText">Autoriser l'extension web</span>
-        </div>
+        </button>
         <p class="slogan">AliExpress à portée de <span class="cta">clic</span>!</p>
     </div>
     <Layout v-else>
@@ -181,6 +177,7 @@
             display: flex;
             flex-direction: row;
             margin-bottom: 21px;
+            gap: 5px;
 
             img {
                 width: 35px;
@@ -188,9 +185,9 @@
             }
 
             h1 {
-                font-weight: 800;
                 font-size: 35px;
-                font-family: style.$font-MontserratAlternates-Thin;
+                font-weight: bold;
+                font-family: style.$font-MontserratAlternates-Regular;
                 color: style.$text-color;
             }
         }
