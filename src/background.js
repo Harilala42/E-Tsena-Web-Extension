@@ -3,7 +3,7 @@
 chrome.tabs.onActivated.addListener((activeInfo) => {
     chrome.tabs.get(activeInfo.tabId, (tab) => {
         if (tab.url && tab.url.includes('https://fr.aliexpress.com/')) {
-            checkTokens();
+            // checkTokens();
             chrome.action.enable();
         } else
             chrome.action.disable();
@@ -12,7 +12,7 @@ chrome.tabs.onActivated.addListener((activeInfo) => {
 
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
     if (tab.url && tab.url.includes('https://fr.aliexpress.com/')) {
-        checkTokens();
+        // checkTokens();
         chrome.action.enable();
     } else
         chrome.action.disable();
@@ -96,10 +96,24 @@ chrome.alarms.onAlarm.addListener((alarm) => {
     }
 });
 
-const isJWPRefreshed = async (tokenJWT) => {
+const isJWTRefreshed = async (tokenJWT, retryCount = 0) => {
     const { token, expireTime, userInfo } = tokenJWT;
 
-    if (Date.now() >= expireTime - 3600000) {
+    if (retryCount > 5) {
+        chrome.storage.local.remove('jwt');
+        chrome.storage.local.set({ 'isAlreadyAuthorize': 'denied' });
+        console.error("❌ Max Retry attempts reached.");
+
+        chrome.notifications.create("failureAuth", {
+            type: "basic",
+            iconUrl: "/icons/48x48.png",
+            title: "⚠️ Recurring connection issue ⚠️",
+            message: "Impossible de rafraîchir la session. Vérifiez votre connexion ou reconnectez-vous."
+        }); 
+        return (true);
+    }
+
+    if (Date.now() >= expireTime - /*3600000*/ 60 * 1000) {
         try {
             const res = await fetch(import.meta.env.VITE_URL_REFRESFTOKEN_JWT, {
                 method: 'POST',
@@ -116,10 +130,13 @@ const isJWPRefreshed = async (tokenJWT) => {
                 };
                 chrome.storage.local.set({ 'jwt': newToken });
                 console.log('JWT successfully refreshed');
-                return (true);
             }
+            return (true);
         } catch (err) {
             console.error(`Failed to refresh JWT Token: ${err}`);
+            const delay = Math.min(1000 * Math.pow(2, retryCount), 30000);
+            console.log(`🔄 Retrying in ${delay / 1000}s.`);
+            setTimeout(() => isJWTRefreshed(tokenJWT, retryCount + 1), delay);
         }
     }
     return (false);
@@ -136,19 +153,33 @@ const generateAEToken = async (tokenJWT) => {
         if (!res.ok) return console.error(`HTTP error! status: ${res.status}`);
         const data = await res.json();
 
-        chrome.storage.local.set({
-            'isAlreadyAuthorize': 'yes',
-            'access_token_time': data.access_token_time,
-            'refresh_token_time': data.refresh_token_time
-        });
+        if (data.access_token_time > 0 && data.refresh_token_time > 0) {
+            chrome.storage.local.set({
+                'isAlreadyAuthorize': 'yes',
+                'access_token_time': /*data.access_token_time*/new Date().getTime() + 10 * 60 * 1000,
+                'refresh_token_time': /*data.refresh_token_time*/new Date().getTime() + 20 * 60 * 1000
+            });
+        }
     } catch (err) {
         console.error(`Failed to generate AE Token: ${err}`);
     }
 }
 
-const refreshAEToken = (tokenJWT) => {
+const refreshAEToken = (tokenJWT, retryCount = 0) => {
     chrome.storage.local.get(['access_token_time'], async (result) => {
         const { token } = tokenJWT;
+
+        if (retryCount > 5) {
+            chrome.storage.local.set({ 'isAlreadyAuthorize': 'no' });
+            console.error("❌ Max Retry attempts reached.");
+    
+            return chrome.notifications.create("failureAuth", {
+                type: "basic",
+                iconUrl: "/icons/warning.svg",
+                title: "⚠️ Recurring connection issue ⚠️",
+                message: "Impossible de rafraîchir la session. Vérifiez votre connexion ou reconnectez-vous."
+            });
+        }
 
         if (Date.now() >= result.access_token_time) {
             try {
@@ -161,6 +192,9 @@ const refreshAEToken = (tokenJWT) => {
                 chrome.storage.local.set({ 'isAlreadyAuthorize': 'refresh' });
             } catch(err) {
                 console.error(`Failed to refresh AE Token: ${err}`);
+                const delay = Math.min(1000 * Math.pow(2, retryCount), 30000);
+                console.log(`🔄 Retrying in ${delay / 1000}s.`);
+                setTimeout(() => refreshAEToken(tokenJWT, retryCount + 1), delay);
             }
         }
     });
@@ -171,7 +205,7 @@ const requestAEToken = () => {
         if (Date.now() >= result.refresh_token_time) {
             chrome.notifications.create("tokenExpired", {
                 type: "basic",
-                iconUrl: "./icons/48x48.png",
+                iconUrl: "/icons/48x48.png",
                 title: "🔔 Autorisation à renouveller 🔔",
                 message: "Nous avons besoin de votre consentement 😇.",
                 buttons: [{ title: "Autoriser l'App" }]
@@ -185,6 +219,7 @@ const checkTokens = () => {
     chrome.storage.local.get(['jwt', 'isAlreadyAuthorize'], async (result) => {
         const tokenJWT = result.jwt;
         if (!tokenJWT) return console.warn("Token didn't find");
+        console.log(`Session will end up at ${new Date(tokenJWT.expireTime)}`);
 
         if (Date.now() >= tokenJWT.expireTime) {
             chrome.storage.local.remove('jwt');
@@ -192,7 +227,7 @@ const checkTokens = () => {
             return console.warn('Token is expired');
         }
 
-        if (await isJWPRefreshed(tokenJWT)) return;
+        if (await isJWTRefreshed(tokenJWT)) return;
 
         switch (result.isAlreadyAuthorize) {
             case 'no':
@@ -209,4 +244,4 @@ const checkTokens = () => {
 };
 
 chrome.alarms.create('updateCart', { periodInMinutes: 15 });
-chrome.alarms.create('tokenCheck', { periodInMinutes: 5 });
+chrome.alarms.create('tokenCheck', { periodInMinutes: 1 });

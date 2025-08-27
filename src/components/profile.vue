@@ -103,17 +103,34 @@
     });
 
     const logoutUser = () => {
-        chrome.storage.local.remove('jwt', () => {
-            if (chrome.runtime.lastError)
-                console.error('Error during remove token', chrome.runtime.lastError);
-            else {
-                console.warn('Token is removed');
+        chrome.storage.local.get(['jwt'], async (result) => {
+            if (!result.jwt) return;
+            const { token } = result.jwt;
+            
+            try {
+                const res =  await fetch(import.meta.env.VITE_URL_REVOKETOKEN_AE, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                })
+                if (!res.ok) throw new Error(`HTTP Error Status: ${res.status}`);
+
+                chrome.storage.local.remove('jwt');
                 chrome.storage.local.set({ 'isAlreadyAuthorize': 'denied' });
-                chrome.notifications.create("logoutUser", {
+                console.warn('Token is removed');
+
+                chrome.notifications.create("SuccessLogout", {
                     type: "basic",
                     iconUrl: "/icons/check_circle.svg",
                     title: `✅ Successful Google Logout ✅`,
                     message: 'Votre compte Google est déconnecté.'
+                });
+            } catch(err) {
+                console.error(`Failed to logout user: ${err}`);
+                chrome.notifications.create("FailureLogout", {
+                    type: "basic",
+                    iconUrl: "/icons/warning.svg",
+                    title: `❌ Failure Google Logout ❌`,
+                    message: "Un problème est survenu lors de la déconnexion 😓."
                 });
             }
         });
