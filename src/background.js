@@ -3,7 +3,7 @@
 chrome.tabs.onActivated.addListener((activeInfo) => {
     chrome.tabs.get(activeInfo.tabId, (tab) => {
         if (tab.url && tab.url.includes('https://fr.aliexpress.com/')) {
-            // checkTokens();
+            checkTokens();
             chrome.action.enable();
         } else
             chrome.action.disable();
@@ -12,7 +12,7 @@ chrome.tabs.onActivated.addListener((activeInfo) => {
 
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
     if (tab.url && tab.url.includes('https://fr.aliexpress.com/')) {
-        // checkTokens();
+        checkTokens();
         chrome.action.enable();
     } else
         chrome.action.disable();
@@ -112,7 +112,7 @@ const isJWTRefreshed = async (tokenJWT, retryCount = 0) => {
         }), true);
     }
 
-    if (Date.now() >= expireTime - /*3600000*/ 60 * 1000) {
+    if (Date.now() >= expireTime - 3600000) {
         try {
             const res = await fetch(import.meta.env.VITE_URL_REFRESFTOKEN_JWT, {
                 method: 'POST',
@@ -148,14 +148,14 @@ const generateAEToken = async (tokenJWT) => {
             method: 'GET',
             headers: { 'Authorization': `Bearer ${token}` }
         });
-        if (!res.ok) return console.error(`HTTP error! status: ${res.status}`);
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
         const data = await res.json();
 
         if (data?.access_token_time > 0 && data?.refresh_token_time > 0) {
             chrome.storage.local.set({
                 'isAlreadyAuthorize': 'yes',
-                'access_token_time': /*data.access_token_time*/new Date().getTime() + 10 * 60 * 1000,
-                'refresh_token_time': /*data.refresh_token_time*/new Date().getTime() + 20 * 60 * 1000
+                'access_token_time': data.access_token_time,
+                'refresh_token_time': data.refresh_token_time
             });
         }
     } catch (err) {
@@ -186,7 +186,7 @@ const refreshAEToken = (tokenJWT, retryCount = 0) => {
                     method: 'POST',
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
-                if (!res.ok) return console.error(`HTTP error! status: ${res.status}`);
+                if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
 
                 chrome.storage.local.set({ 'isAlreadyAuthorize': 'refresh' });
             } catch(err) {
@@ -243,4 +243,4 @@ const checkTokens = () => {
 };
 
 chrome.alarms.create('updateCart', { periodInMinutes: 15 });
-chrome.alarms.create('tokenCheck', { periodInMinutes: 1 });
+chrome.alarms.create('tokenCheck', { periodInMinutes: 15 });
