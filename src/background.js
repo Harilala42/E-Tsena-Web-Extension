@@ -33,7 +33,7 @@ chrome.runtime.onInstalled.addListener((details) => {
 });
 
 chrome.notifications.onButtonClicked.addListener((notifId, btnIdx) => {
-    if (notifId === "tokenExpired" && btnIdx === 0) {
+    if (notifId === "requestToken" && btnIdx === 0) {
         chrome.storage.local.get(['jwt'], (result) => {
             if (result.jwt) {
                 const { token } = result.jwt;
@@ -104,13 +104,12 @@ const isJWTRefreshed = async (tokenJWT, retryCount = 0) => {
         chrome.storage.local.set({ 'isAlreadyAuthorize': 'denied' });
         console.error("❌ Max Retry attempts reached.");
 
-        chrome.notifications.create("failureAuth", {
+        return (chrome.notifications.create("failureAuth", {
             type: "basic",
             iconUrl: "/icons/48x48.png",
             title: "⚠️ Recurring connection issue ⚠️",
-            message: "Impossible de rafraîchir la session. Vérifiez votre connexion ou reconnectez-vous."
-        }); 
-        return (true);
+            message: "Impossible de rafraîchir la session. Vérifiez votre connexion ou reconnectez-vous!"
+        }), true);
     }
 
     if (Date.now() >= expireTime - /*3600000*/ 60 * 1000) {
@@ -129,9 +128,8 @@ const isJWTRefreshed = async (tokenJWT, retryCount = 0) => {
                     userInfo
                 };
                 chrome.storage.local.set({ 'jwt': newToken });
-                console.log('JWT successfully refreshed');
+                return (console.log('JWT successfully refreshed'), true);
             }
-            return (true);
         } catch (err) {
             console.error(`Failed to refresh JWT Token: ${err}`);
             const delay = Math.min(1000 * Math.pow(2, retryCount), 30000);
@@ -153,7 +151,7 @@ const generateAEToken = async (tokenJWT) => {
         if (!res.ok) return console.error(`HTTP error! status: ${res.status}`);
         const data = await res.json();
 
-        if (data.access_token_time > 0 && data.refresh_token_time > 0) {
+        if (data?.access_token_time > 0 && data?.refresh_token_time > 0) {
             chrome.storage.local.set({
                 'isAlreadyAuthorize': 'yes',
                 'access_token_time': /*data.access_token_time*/new Date().getTime() + 10 * 60 * 1000,
@@ -173,11 +171,12 @@ const refreshAEToken = (tokenJWT, retryCount = 0) => {
             chrome.storage.local.set({ 'isAlreadyAuthorize': 'no' });
             console.error("❌ Max Retry attempts reached.");
     
-            return chrome.notifications.create("failureAuth", {
+            return chrome.notifications.create("requestToken", {
                 type: "basic",
                 iconUrl: "/icons/warning.svg",
                 title: "⚠️ Recurring connection issue ⚠️",
-                message: "Impossible de rafraîchir la session. Vérifiez votre connexion ou reconnectez-vous."
+                message: "Impossible de rafraîchir la session. Vérifiez votre autorisation!",
+                buttons: [{ title: "Autoriser l'App" }]
             });
         }
 
@@ -203,7 +202,7 @@ const refreshAEToken = (tokenJWT, retryCount = 0) => {
 const requestAEToken = () => {
     chrome.storage.local.get(['refresh_token_time'], (result) => {
         if (Date.now() >= result.refresh_token_time) {
-            chrome.notifications.create("tokenExpired", {
+            chrome.notifications.create("requestToken", {
                 type: "basic",
                 iconUrl: "/icons/48x48.png",
                 title: "🔔 Autorisation à renouveller 🔔",

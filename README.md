@@ -1,7 +1,6 @@
-# E-Tsena Web Entension
+# E-Tsena Web Extension
+Web Extension allows customers in Madagascar 🇲🇬 to:
 
-Web Entension permettant aux utilisateurs à Madagascar 🇲🇬 :
-- Commander 🛒 directement sur Aliexpress
-- Payer 💳 en Ariary en Mobile Money (avec Mvola)
-- Suivre 🖲️ l'état en temps réel de la commande
-
+- 🛒 Purchase directly on AliExpress
+- 💳 Pay locally via Mvola
+- 🖲️ Track orders end-to-end with email notifications
