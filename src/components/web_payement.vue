@@ -28,6 +28,7 @@
         currentCart.value = await order.prepareOrder();
 
         window.addEventListener("message", (event) => {
+            if (event.origin !== new URL(import.meta.env.VITE_URL_TURNSTILE).origin) return;
             if (event.data?.type === "turnstileToken")
                 recaptchaToken.value = event.data.token;
         });
