@@ -96,15 +96,18 @@
                 item_id: itemId,
                 item_url: url_buffer,
                 img_default: imageUrls[0],
-                isPending: false,
                 img_url: await getSkuImage(skusInfo[0], imageUrls[0], 0),
                 details: item.ae_item_base_info_dto.subject,
                 rates: item.ae_item_base_info_dto.avg_evaluation_rating,
+                category_id: item.ae_item_base_info_dto.category_id,
+                currency_code: item.ae_item_base_info_dto.currency_code,
                 sku_item: skusInfo,
                 order_model: getInfoSku(skusInfo[0]),
                 package_info: item.package_info_dto,
+                store_info: item.ae_store_info,
                 selectedSkuIndex: 0,
-                number_item: 1
+                number_item: 1,
+                isPending: false
             });
         } catch (error) {
             const errorMessage = typeof error?.message === 'string' ? error.message 

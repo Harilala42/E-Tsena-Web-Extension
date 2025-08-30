@@ -47,13 +47,12 @@
         }, callback);
     }
 
-    const notifyFailure = (message, callback) => {
+    const notifyFailure = (title, message, callback) => {
         chrome.notifications.create("failureMvola", 
         {
             type: "basic",
             iconUrl: "/icons/mvola.png",
-            title: "❌ Failure Mvola Transaction ❌",
-            message
+            title, message
         }, callback);
     }
 
@@ -88,45 +87,41 @@
         istransactionInProgress.value = false;
     }
 
-    var orderInterval = null;
-    const handleOrderCreation = (token) => {
-        let isOrderCreated = false;
-        const startTime = Date.now();
-        orderInterval = setInterval(async () => {
-            if (Date.now() - startTime > 2 * 60 * 1000) {
-                clearInterval(orderInterval);
-                orderInterval = null;
-                return console.error('Order creation timed out.');
-            }
+    const handleOrderCreation = async (token, retryCount = 0) => {
+        if (retryCount > 5) {
+            console.error("❌ Max Retry attempts reached.");
 
-            if (isOrderCreated) return ;
-            isOrderCreated = true;
+            resetState();
+            return notifyFailure(
+                "Failure Creating Order ❌",
+                "Impossible de créer la commande 😓.",
+                () => setTimeout(() => router.push('/shopping_cart'), 3000)
+            );
+        }
 
-            try {
-                const res = await createOrderAE(transactionId.value, token);
-                if (res.status === 200) {
-                    clearInterval(orderInterval);
-                    orderInterval = null;
+        try {
+            const res = await createOrderAE(transactionId.value, token);
+            if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
 
-                    resetState();
-                    notifySuccess(
-                        `Montant ${sum.amountWithDots}MGA payé avec succès.`,
-                        () => {
-                            chrome.storage.local.set({ cart: JSON.stringify([]) });
-                            setTimeout(() => router.push('/shopping_cart'), 3000);
-                        }
-                    );
+            resetState();
+            notifySuccess(
+                `Montant ${sum.amountWithDots}MGA payé avec succès.`,
+                () => {
+                    chrome.storage.local.set({ cart: JSON.stringify([]) });
+                    setTimeout(() => router.push('/shopping_cart'), 3000);
                 }
-            } catch(err) {
-                console.error('Failed to create order: ', err);
-            } finally {
-                isOrderCreated = false;
-            }
-        }, 5000);
+            );
+        } catch(err) {
+            console.error('Failed to create order: ', err);
+            const delay = Math.min(1000 * Math.pow(2, retryCount), 30000);
+            console.log(`🔄 Retrying in ${delay / 1000}s.`);
+            setTimeout(() => handleOrderCreation(token, retryCount + 1), delay);
+        }
     }
 
     var pollingInterval = null;
     const handleTransaction = (token) => {
+        let retryCount = 0;
         const startTime = Date.now();
         pollingInterval = setInterval(async () => {
             if (Date.now() - startTime > 3 * 60 * 1000) {
@@ -135,7 +130,20 @@
 
                 resetState();
                 return notifyFailure(
-                    'Transaction trop longue ⏳.',
+                    "❌ Failure Mvola Transaction ❌",
+                    "Transaction trop longue ⏳.",
+                    () => setTimeout(() => router.push('/shopping_cart'), 3000)
+                );
+            } else if (retryCount > 3) {
+                clearInterval(pollingInterval);
+                pollingInterval = null;
+
+                console.error("❌ Max Retry attempts reached.");
+
+                resetState();
+                return notifyFailure(
+                    "❌ Failure Mvola Transaction ❌",
+                    "Impossible de vérifier le status de la transaction 😓.",
                     () => setTimeout(() => router.push('/shopping_cart'), 3000)
                 );
             }
@@ -157,23 +165,36 @@
                     } else {
                         resetState();
                         notifyFailure(
-                            'Echec de la Transaction! Annulation de la commande 😓.',
+                            "❌ Failure Mvola Transaction ❌",
+                            "Echec de la Transaction! Annulation de la commande 😓.",
                             () => setTimeout(() => router.push('/shopping_cart'), 3000)
                         );                    
                     }
                 }
             } catch (error) {
-                console.error("Error checking transaction status:", error);
+                console.error(`Error checking transaction status: ${error}`);
+                retryCount += 1;
             }
-        }, 10000);
+        }, 15000);
     };
 
     // Pour initialiser une transaction avec Mvola
-    const initTransaction = () => {
+    const initTransaction = (retryCount = 0) => {
         chrome.storage.local.get(['jwt'], async (result) => {
             if (result.jwt) {
                 const { token } = result.jwt;
                 istransactionInProgress.value = true;
+
+                if (retryCount > 5) {
+                    console.error("❌ Max Retry attempts reached.");
+
+                    resetState();
+                    return notifyFailure(
+                        "❌ Failure Mvola Transaction ❌",
+                        "Impossible d'initier la transaction 😓.",
+                        () => setTimeout(() => router.push('/shopping_cart'), 3000)
+                    );
+                }
 
                 try {
                     const response = await fetch(import.meta.env.VITE_URL_MVOLAINIT, {
@@ -187,8 +208,7 @@
                             token: recaptchaToken.value
                         })
                     });
-                    if (!response.ok)
-                        throw new Error(`HTTP error! status: ${response.status}`);
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
 
                     const data = await response.json();
                     if (data.serverCorrelationId) {
@@ -197,12 +217,9 @@
                     }
                 } catch(error) {
                     console.error(`Error Init transaction: ${error}`);
-
-                    resetState();
-                    notifyFailure(
-                        "Impossible d'initier la transaction 😓.",
-                        () => setTimeout(() => router.push('/shopping_cart'), 3000)
-                    );
+                    const delay = Math.min(1000 * Math.pow(2, retryCount), 30000);
+                    console.log(`🔄 Retrying in ${delay / 1000}s.`);
+                    setTimeout(() => initTransaction(retryCount + 1), delay);
                 }
             }
         })
@@ -248,7 +265,7 @@
             <router-link class="cancel" to="/shopping_cart">Annuler</router-link>
             <button :disabled="!isPayButtonEnabled"
                 :class="{ 'enabled_pay': isPayButtonEnabled, 'unenabled_pay': !isPayButtonEnabled }"
-                @click="initTransaction"
+                @click="initTransaction(0)"
             >
                 <p>Payer</p>
                 <span v-if="istransactionInProgress" class="load_pay"></span>

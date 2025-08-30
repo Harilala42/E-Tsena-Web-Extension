@@ -22,6 +22,8 @@ export const useOrderStore = defineStore('purchaseOrder', {
 
                         const currentCart = cartData.map(item => ({
                             product_id: item.item_id,
+                            category_id: item.category_id.toFixed(0),
+                            currency_code: item.currency_code,
                             product_count: item.number_item,
                             sku_attr: item.sku_item[item.selectedSkuIndex].sku_attr,
                             logistics_service_name: 'CAINIAO_STANDARD',
@@ -39,6 +41,14 @@ export const useOrderStore = defineStore('purchaseOrder', {
                                 return (isOnSale ? Number(salePrice).toFixed(2) : Number(price).toFixed(2));
                             })(),
                             package_info: item.package_info,
+                            store_info: {
+                                communication_rating: Number(item.store_info.communication_rating),
+                                item_as_described_rating: Number(item.store_info.item_as_described_rating),
+                                shipping_speed_rating: Number(item.store_info.shipping_speed_rating),
+                                store_country_code: item.store_info.store_country_code,
+                                store_id: item.store_info.store_id.toFixed(0),
+                                store_name: item.store_info.store_name,
+                            },
                             order_memo: ''
                         }));
         

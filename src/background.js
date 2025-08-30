@@ -243,4 +243,4 @@ const checkTokens = () => {
 };
 
 chrome.alarms.create('updateCart', { periodInMinutes: 15 });
-chrome.alarms.create('tokenCheck', { periodInMinutes: 15 });
+chrome.alarms.create('tokenCheck', { periodInMinutes: 10 });
