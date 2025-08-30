@@ -164,21 +164,21 @@ const generateAEToken = async (tokenJWT) => {
 }
 
 const refreshAEToken = (tokenJWT, retryCount = 0) => {
+    if (retryCount > 5) {
+        chrome.storage.local.set({ 'isAlreadyAuthorize': 'no' });
+        console.error("❌ Max Retry attempts reached.");
+
+        return chrome.notifications.create("requestToken", {
+            type: "basic",
+            iconUrl: "/icons/warning.svg",
+            title: "⚠️ Recurring connection issue ⚠️",
+            message: "Impossible de rafraîchir la session. Vérifiez votre autorisation!",
+            buttons: [{ title: "Autoriser l'App" }]
+        });
+    }
+
     chrome.storage.local.get(['access_token_time'], async (result) => {
         const { token } = tokenJWT;
-
-        if (retryCount > 5) {
-            chrome.storage.local.set({ 'isAlreadyAuthorize': 'no' });
-            console.error("❌ Max Retry attempts reached.");
-    
-            return chrome.notifications.create("requestToken", {
-                type: "basic",
-                iconUrl: "/icons/warning.svg",
-                title: "⚠️ Recurring connection issue ⚠️",
-                message: "Impossible de rafraîchir la session. Vérifiez votre autorisation!",
-                buttons: [{ title: "Autoriser l'App" }]
-            });
-        }
 
         if (Date.now() >= result.access_token_time) {
             try {
