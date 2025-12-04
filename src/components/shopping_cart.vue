@@ -106,8 +106,7 @@
                 package_info: item.package_info_dto,
                 store_info: item.ae_store_info,
                 selectedSkuIndex: 0,
-                number_item: 1,
-                isPending: false
+                number_item: 1
             });
         } catch (error) {
             const errorMessage = typeof error?.message === 'string' ? error.message 
@@ -205,10 +204,6 @@
 
     // Obtention d'un model spécifique du produit
     const chooseModel = async (sku, id) => {
-        if (selectedItems.value[id].isPending)
-            return;
-        selectedItems.value[id].isPending = true;
-
         try {
             const imageUrl = await getSkuImage(
                 selectedItems.value[id].sku_item[sku],
@@ -216,15 +211,18 @@
                 id
             );
 
-            selectedItems.value[id].img_url = imageUrl;
-            selectedItems.value[id].order_model = getInfoSku(selectedItems.value[id].sku_item[sku]);
-            selectedItems.value[id].selectedSkuIndex = sku;
-            selectedItems.value[id].number_item = 1;
+            const newModelInfo = getInfoSku(selectedItems.value[id].sku_item[sku]);
+            const updatedItem = { ...selectedItems.value[id] };
+
+            updatedItem.img_url = imageUrl;
+            updatedItem.order_model = newModelInfo;
+            updatedItem.selectedSkuIndex = sku;
+            updatedItem.number_item = 1;
+
+            selectedItems.value.splice(id, 1, updatedItem);
             item_id.value = -1;
         } catch (error) {
             console.error('Error in chooseModel:', error);
-        }  finally {
-            selectedItems.value[id].isPending = false;
         }
     };
 

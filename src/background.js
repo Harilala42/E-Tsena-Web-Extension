@@ -63,8 +63,7 @@ chrome.alarms.onAlarm.addListener((alarm) => {
                             body: JSON.stringify({ itemId: item.item_id })
                         });
 
-                        if (!response.ok)
-                            return console.error(`HTTP error! status: ${response.status}`);
+                        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
 
                         const data = await response.json();
 
@@ -170,7 +169,7 @@ const refreshAEToken = (tokenJWT, retryCount = 0) => {
 
         return chrome.notifications.create("requestToken", {
             type: "basic",
-            iconUrl: "/icons/warning.svg",
+            iconUrl: "/icons/48x48.png",
             title: "⚠️ Recurring connection issue ⚠️",
             message: "Impossible de rafraîchir la session. Vérifiez votre autorisation!",
             buttons: [{ title: "Autoriser l'App" }]
@@ -237,7 +236,6 @@ const checkTokens = () => {
             break;
             default:
                 requestAEToken(tokenJWT);
-            break;
         }
     });
 };

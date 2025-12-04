@@ -29,12 +29,6 @@
         "client_id": "535026693538-tnepqqo7s68h90snlaovmupeiupar9k5.apps.googleusercontent.com",
         "scopes":["openid", "profile", "email"]
     },
-    "content_scripts": [
-        {
-            "matches": ["https://fr.aliexpress.com/*"],
-            "js": ["content.js"]
-        }
-    ],
     "icons": {
         "16": "icons/16x16.png",
         "48": "icons/48x48.png",

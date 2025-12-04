@@ -82,7 +82,6 @@
                 '?client_id=' + client_id +
                 '&response_type=code' +
                 '&access_type=offline' +       
-                '&prompt=consent' + 
                 '&redirect_uri=' + redirect_uri +
                 '&scope=' + scopes;
 

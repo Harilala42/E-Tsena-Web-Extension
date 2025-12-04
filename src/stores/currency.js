@@ -24,7 +24,7 @@ export const useCounterStore = defineStore('convertUSDtoMGA', {
                             headers: { 'Authorization': `Bearer ${token}` }
                         });
                         if (!response.ok)
-                            return console.error(`HTTP error! status: ${response.status}`);
+                            throw new Error(`HTTP error! status: ${response.status}`);
         
                         const data = await response.json();
         
@@ -34,6 +34,13 @@ export const useCounterStore = defineStore('convertUSDtoMGA', {
                     } catch(error) {
                         this.is_updated = false;
                         console.error(`Failed to convert ${this.amount}$:`, error);
+
+                        chrome.notifications.create("failureConvertCurrency", {
+                            type: "basic",
+                            iconUrl: "/icons/warning.svg",
+                            title: '❌ Something is wrong ❌',
+                            message: "Echec de la conversion de devise. Veuillez réessayer plus tard 😓!"
+                        });
                     }
                 }
             });

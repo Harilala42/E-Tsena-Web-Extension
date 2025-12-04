@@ -59,7 +59,7 @@
             </div>
             <div class="check_out">
                 <button class="cancel" @click="sum.is_updated = false">Annuler</button>
-                <button class="purchase" @click="router.push('/web_payement')">Payer</button>
+                <button class="purchase" @click="router.push('/web_payment')">Payer</button>
             </div>
         </div>
     </div>
