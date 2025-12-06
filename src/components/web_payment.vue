@@ -14,11 +14,11 @@
         { id: 'orange money', name: 'Orange Money', icon: '/icons/orange_money_lg.png' }
     ]);
 
-    var recaptchaToken = ref(null);
-    var istransactionInProgress = ref(false);
-    var serverCorrelationId = ref(null);
-    var transactionId = ref(null);
-    var currentCart = ref([]);
+    const recaptchaToken = ref(null);
+    const istransactionInProgress = ref(false);
+    const serverCorrelationId = ref(null);
+    const transactionId = ref(null);
+    const currentCart = ref([]);
 
     const selectedMethod = ref('mvola');
     const selectMethod = id => selectedMethod.value = id;
@@ -57,7 +57,6 @@
         }, callback);
     }
 
-    // Pour vérifier le status d'une transaction
     const checkTransactionStatus = (token) => {
         return fetch(import.meta.env.VITE_URL_MVOLASTATUS + serverCorrelationId.value, {
             method: 'GET',
@@ -68,7 +67,6 @@
         });
     }
 
-    // Initialisation d'une commande AliExpress
     const createOrderAE = (referenceId, token) => {
         return fetch(import.meta.env.VITE_URL_CREATEORDER_AE, {
             method: 'POST',
@@ -120,7 +118,7 @@
         }
     }
 
-    var pollingInterval = null;
+    const pollingInterval = null;
     const handleTransaction = (token) => {
         let retryCount = 0;
         const startTime = Date.now();
@@ -179,7 +177,6 @@
         }, 15000);
     };
 
-    // Pour initialiser une transaction avec Mvola
     const initTransaction = (retryCount = 0) => {
         chrome.storage.local.get(['jwt'], async (result) => {
             if (result.jwt) {

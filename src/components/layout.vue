@@ -1,8 +1,8 @@
 <script setup>
     import { ref, onMounted } from 'vue';
 
-    var picture = ref('');
-    var state = ref('');
+    const picture = ref('');
+    const state = ref('');
 
     onMounted(() => {
         chrome.storage.onChanged.addListener((details) => {

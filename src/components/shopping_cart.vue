@@ -3,18 +3,16 @@
     import { useCounterStore } from '@/stores/currency';
     import { useOrderStore } from '@/stores/order';
     import ReviewItem from './review_order.vue';
+    import CartItem from './cart_item.vue';
 
     const sum = useCounterStore();
     const order = useOrderStore();
 
-    var selectedItems = ref([]);
-    const showFullText = ref({});
-    var showNumber = ref(-1);
-    var addItem = ref(false);
-    var purchaseIt = ref(false);
-    var item_id = ref(-1);
-    var price_id = ref(-1);
-    var url = ref('');
+    const selectedItems = ref([]);
+    const addItem = ref(false);
+    const purchaseIt = ref(false);
+    const item_id = ref(-1);
+    const url = ref('');
 
     onMounted(() => {
         let cartData = [];
@@ -37,15 +35,8 @@
         });
     });
 
-    watch(selectedItems, (newVal) => {
-        chrome.storage.local.set({ cart: JSON.stringify(newVal) });
-
-        if (price_id.value < 0)
-            return ;
-
-        if (newVal[price_id.value].number_item === selectedItems.value[price_id.value].number_item)
-            selectedItems.value[price_id.value].number_item = numberItem(newVal[price_id.value]);
-        price_id.value = -1;
+    watch(selectedItems, (newCart) => {
+        chrome.storage.local.set({ cart: JSON.stringify(newCart) });
     }, { deep: true });
 
     const isPurchaseButtonEnabled = computed(() => {
@@ -65,7 +56,6 @@
         }, 0).toFixed(2);
     });
 
-    // Obtention des informations du Product AE
     const getProductInfo = async () => {
         try {
             const url_buffer = url.value;
@@ -82,7 +72,6 @@
 
             const data = await response.json();
 
-            // Extraction des informations utiles
             const item = data.info.aliexpress_ds_product_get_response.result;
             const skusInfo = item.ae_item_sku_info_dtos.ae_item_sku_info_d_t_o;
             const imageUrls = item.ae_multimedia_info_dto.image_urls.split(';');
@@ -135,7 +124,6 @@
         }
     }
 
-    // Obtention des informations d'un 'sku_item'
     const getInfoSku = (sku_item) => {
         const price = parseFloat(sku_item.sku_price);
         const sale_price = parseFloat(sku_item.offer_sale_price);
@@ -152,7 +140,6 @@
         }
     }
 
-    // Obtention de l'image produit du model
     const getSkuImage = async (sku_item, img_default, id) => {
         try {
             const variant = sku_item.ae_sku_property_dtos;
@@ -172,7 +159,6 @@
         }
     };
 
-    // Obtention des variants du produit
     const getVariantName = (sku_attr) => {
         if (!sku_attr) return 'Default';
 
@@ -188,21 +174,6 @@
         return variantNames.join(' ') || 'Default';
     };
 
-    // Obtention du prix réel du produit
-    const getItemPrice = (item) => {
-        let info = item.order_model,
-            price = info.is_on_sale ? info.sale_price : info.price;
-        return Number(price).toFixed(2) || 0;
-    };
-
-    // Obtention du pourcentage de promotion du produit
-    const getDiscount = (item) => {
-        let info = item.order_model,
-            discount = info.is_on_sale ? `-${Math.round(((info.price - info.sale_price) / info.price) * 100)}%` : null;
-        return discount || undefined;
-    }
-
-    // Obtention d'un model spécifique du produit
     const chooseModel = async (sku, id) => {
         try {
             const imageUrl = await getSkuImage(
@@ -226,48 +197,6 @@
         }
     };
 
-    // Notification Push pour le nombre de stock
-    const notifyStock = async (item, currentStock) => {
-        try {
-            const response = await fetch(item.img_url);
-            const blob = await response.blob();
-            
-            // Convertion en data URL
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                chrome.notifications.create("stockWarning", {
-                    type: "basic",
-                    iconUrl: reader.result,
-                    title: "❌ Stock insuffisant ❌",
-                    message: `Only ${currentStock} items available in stock`
-                });
-            };
-            reader.readAsDataURL(blob);
-        } catch (error) {
-            chrome.notifications.create("stockWarning", {
-                type: "basic",
-                iconUrl: "/icons/warning.svg",
-                title: "❌ Stock insuffisant ❌",
-                message: `Only ${currentStock} items available in stock`
-            });
-        }
-    }
-
-    // Vérification du nombre de commande possible
-    const numberItem = (item) => {
-        const currentStock = item.order_model.currentStock;
-        let currentNumber = item.number_item;
-
-        if (currentNumber < 1)
-            currentNumber = 1;
-        else if (currentNumber > currentStock) {
-            currentNumber = currentStock;
-            notifyStock(item, currentStock);
-        }
-        return currentNumber;
-    }
-
-    // Extraction du itemID de l'URL
     const extractItemID = (url) => {
         return new Promise((resolve, reject) => {
             const parsedUrl = new URL(url);
@@ -286,7 +215,6 @@
         });
     };
 
-    // Envoie du itemId vers le server
     const sendIdToServer = (itemId) => {
         return new Promise((resolve) => {
             chrome.storage.local.get(['jwt'], async (result) => {
@@ -306,7 +234,6 @@
         });
     };
 
-    // Affichage du total de la commande
     const purchaseOrder = () => {
         chrome.storage.local.get(['cart', 'jwt'], async (result) => {
             if (!result.cart || !result.jwt) return ;
@@ -333,7 +260,6 @@
         });
     }
 
-    // Obtention de la date d'aujourd'hui
     const formatDate = (timestamp) => {
         const date = new Date(timestamp);
         const day = String(date.getDate()).padStart(2, '0');
@@ -343,7 +269,6 @@
         return `${day}/${month}/${year}`;
     }
 
-    // Pré-chargement des images critiques
     const preloadImage = (url) => {
         return new Promise((resolve, reject) => {
             const img = new Image();
@@ -357,7 +282,7 @@
 
 <template>
     <div class="container">
-        <div class="title">
+        <section id="title">
             <div class="icon-title">
                 <img src="/icons/shopping_cart.svg" alt="cart">
                 <h1 class="text">Panier d'Achat</h1>
@@ -367,9 +292,9 @@
                 <img src="/icons/calendar.svg" alt="calendar">
                 <h1 class="date">{{ formatDate(Date.now()) }}</h1>
             </div>
-        </div>
+        </section>
         <div class="horizontal-bar"></div>
-        <div class="cart">
+        <section id="cart">
             <div class="searchBar">
                 <input type="text" placeholder="Collez votre url ici" v-model="url" :value="truncatedUrl">
                 <div class="btnSearch">
@@ -387,66 +312,18 @@
                 <p class="message">Le panier est vide.</p>
             </div>
             <div class="selectedProduct" v-else>
-                <div class="item" v-for="item in selectedItems" :key="selectedItems.indexOf(item)">
-                    <div class="models" @click="!sum.is_updated ? item_id = selectedItems.indexOf(item) : item_id = -1">
-                        <div :class="{ 'img_models_shown': !sum.is_updated, 'img_models_hidden': sum.is_updated }" 
-                            :style="{ 'background-image': item.img_url ? `url('${item.img_url}')` : 'none' }"
-                            :aria-label="item.item_id">
-                            <img src="/icons/choose.svg" v-if="!sum.is_updated" alt="choose" title="Choisir une option">
-                        </div>
-                    </div>
-                    <div class="info_product">
-                        <div class="utils">
-                            <img src="/icons/star.svg" alt="star">
-                            <p class="rates">{{ item.rates }}</p>
-                            <p class="discount" v-if="item.order_model.is_on_sale" >{{ getDiscount(item) }}</p>  
-                            <p class="stock">({{ item.order_model.currentStock }} en stock)</p>     
-                        </div>
-                        <div class="details">
-                            <p class="description">
-                                {{
-                                    showFullText[item.item_id] ? 
-                                        item.details : 
-                                        `${item.details.substring(0, 100)}${(item.details.length > 100 && !showFullText[item.item_id]) ? '...' : null}`
-                                }}
-                                <span v-if="item.details.length > 100" class="see_more" @click="showFullText[item.item_id] = !showFullText[item.item_id]">
-                                    {{ showFullText[item.item_id] ? 'Voir moins' : 'Voir plus' }}
-                                </span>
-                            </p>
-                            <div class="ref">
-                                <div class="number">
-                                    <p class="price">${{ getItemPrice(item) }}</p><p>X</p>
-                                    <div :class="{'nb_item_enabled': selectedItems.indexOf(item) !== showNumber, 'nb_item_unabled': selectedItems.indexOf(item) === showNumber}">
-                                        <p :class="{ 'nb_display': !sum.is_updated }">{{ item.number_item }}</p>
-                                        <input type="number" class="nb_input" 
-                                            v-if="!sum.is_updated" v-model="item.number_item" 
-                                            :value="numberItem(item)" 
-                                            @input="price_id = selectedItems.indexOf(item)"
-                                            :min="1"
-                                        >
-                                        <button class="ajust_nb" v-if="!sum.is_updated" 
-                                            @click="showNumber < 0 ? showNumber = selectedItems.indexOf(item) : showNumber !== selectedItems.indexOf(item) ? showNumber = selectedItems.indexOf(item) : showNumber = -1"
-                                        >
-                                            <img src="/icons/pencil.svg" alt="adjust number" width="18px" height="18px">
-                                        </button>
-                                    </div>
-                                </div>
-                                <a :href="item.item_url" target="blank">
-                                    <img src="/icons/link.svg" alt="link">
-                                    <p>Voir l'article</p>
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                    <img src="/icons/delete.svg" class="removeItem" alt="delete"
-                        v-if="!showFullText[item.item_id] && !sum.is_updated"
-                        @click="selectedItems = selectedItems.filter(id => id.item_id !== item.item_id)"
-                    >
-                </div>
+                <CartItem v-for="(item, idx) in selectedItems"
+                    :key="item.item_id"
+                    :item="item" :index="idx"
+                    @choose="item_id = $event"
+                    @update="selectedItems[$event.idx].number_item = $event.quantity"
+                    @remove="selectedItems = selectedItems.filter(id => id.item_id !== $event)"
+                >
+                </CartItem>
             </div>
-        </div>
+        </section>
         <div class="horizontal-bar"></div>
-        <div class="review" v-if="!sum.is_updated">
+        <section id="review" v-if="!sum.is_updated">
             <div class="total">
                 <p>Total :</p>
                 <p class="total_price">${{ totalPrice }}</p>
@@ -464,7 +341,7 @@
                 <p v-if="!purchaseIt">Acheter</p>
                 <span v-else class="load_purchase"></span>
             </button>
-        </div>
+        </section>
         <ReviewItem v-else></ReviewItem>
         <div class="sku_item" v-if="item_id >= 0">
             <div class="sku_id"
@@ -502,7 +379,7 @@
         min-height: 500px;
         padding: 0;
 
-        .title {
+        #title {
             display: flex;
             flex-direction: row;
             align-items: center;
@@ -551,12 +428,12 @@
             margin-bottom: 10px;
         }
 
-        .cart {
+        #cart {
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            margin-bottom: 10px;
+            margin-bottom: 14px;
 
             .searchBar {
                 display: flex;
@@ -647,7 +524,7 @@
                 justify-content: center;
                 align-items: center;
                 min-width: 400px;
-                min-height: 350px;
+                min-height: 355px;
 
                 .message {
                     font-weight: 800;
@@ -669,226 +546,16 @@
                 overflow-x: hidden;
                 transition: max-height 0.8s ease;
                 gap: 5px;
-
-                .item {
-                    width: 350px;
-                    display: flex;
-                    flex-direction: row;
-                    justify-content: center;
-                    align-items: center;
-                    position: relative;
-                    border: 1px solid style.$primary-color;
-                    border-radius: 15px;
-                    margin-top: 8px;
-                    padding: 5px 0;
-                    gap: 5px;
-
-                    .models {
-                        width: 80px;
-                        height: 80px;
-                        margin-left: 10px;
-
-                        @mixin img_models {
-                            width: 80px;
-                            height: 80px;
-                            background-size: cover;
-                            background-position: center;
-                            background-repeat: no-repeat;
-                            position: relative;
-                            border-radius: 5px;
-
-                            img {
-                                width: 24px;
-                                height: 24px;
-                            }
-                        }
-
-                        .img_models_shown {
-                            @include img_models;
-
-                            .id_models {
-                                width: 15px;
-                                height: 15px;
-                                text-align: center;
-                                position: absolute;
-                                inset: 3px;
-                            }
-
-                            &:hover { cursor: pointer; }
-                        }
-
-                        .img_models_hidden { @include img_models; }
-                    }
-
-                    .info_product{
-                        .utils {
-                            display: flex;
-                            flex-direction: row;
-                            align-items: baseline;
-                            gap: 5px;
-
-                            img {
-                                width: 15px;
-                                height: 15px;
-                            }
-
-                            .rates {
-                                font-size: 15px;
-                                font-family: style.$font-Poppins-Medium;
-                                color: style.$text-color;
-                            }
-
-                            @mixin shared_font {
-                                font-family: style.$font-Poppins-Bold;
-                                color: style.$primary-color;
-                            }
-
-                            .discount {
-                                @include shared_font;
-                                font-size: 15px;
-                            }
-
-                            .stock {
-                                @include shared_font;
-                                font-size: 12px;
-                            }
-                        }
-
-                        .details {
-                            display: flex;
-                            flex-direction: column;
-
-                            .description {
-                                font-size: 10px;
-                                font-family: style.$font-Poppins-Bold;
-                                color: style.$text-color;
-                                width: 240px;
-
-                                .see_more {
-                                    text-decoration: underline;
-                                    &:hover { cursor: pointer; }
-                                }
-                            }
-
-                            .ref {
-                                display: flex;
-                                flex-direction: row;
-                                align-items: center;
-                                justify-content: space-between;
-
-                                .number {
-                                    display: flex;
-                                    flex-direction: row;                                
-                                    align-items: baseline;
-                                    gap: 2px;
-
-                                    .price, .icon {
-                                        font-size: 15px;
-                                        font-family: style.$font-Poppins-Bold;
-                                        color: style.$text-color;
-                                    }
-
-                                    @mixin shared_number {
-                                        font-size: 12px;
-                                        font-family: style.$font-Poppins-Bold;
-                                        color: style.$text-color;
-                                    }
-
-                                    p { @include shared_number; }
-
-                                    @mixin ajust_style {
-                                        display: flex;
-                                        flex-direction: row;
-                                        align-items: center;
-                                        justify-content: center;
-                                        gap: 3px;
-
-                                        .ajust_nb {
-                                            display: flex;
-                                            flex-direction: row;
-                                            align-items: center;
-                                            background-color: style.$background-color;
-                                            padding-bottom: 4px;
-                                            cursor: pointer;
-                                            border: none;
-
-                                            .icon {
-                                                border: none;
-                                                margin-left: 2px;
-                                                background-color: transparent;
-                                                &:hover { cursor: pointer; }
-                                            }
-                                        }
-                                    }
-
-                                    .nb_item_enabled {
-                                        @include shared_number;
-                                        
-                                        .nb_input { display: none; }
-                                        @include ajust_style;
-                                    }
-
-                                    .nb_item_unabled {
-                                        .nb_display { display: none; }
-                                        @include ajust_style;
-
-                                        input[type="number"] {
-                                            width: 50px;
-                                            border: none;
-                                            display: flex;
-                                            background-color: transparent;
-                                            @include shared_number;
-
-                                            &:focus {
-                                                outline: none;
-                                                border: none;
-                                                box-shadow: none;
-                                            }
-                                        }
-                                    }
-                                }
-
-                                a {
-                                    display: flex;
-                                    flex-direction: row;
-                                    align-items: center;
-                                    font-family: style.$font-Poppins-Regular;
-                                    font-size: 10px;
-                                    color: style.$text-color;
-                                    margin-right: 5px;
-                                    gap: 3px;
-
-                                    img {
-                                        width: 18px;
-                                        height: 18px;
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    .removeItem {
-                        width: 25px;
-                        height: 25px;
-                        background-color: style.$background-color;
-                        position: absolute;
-                        z-index: 0;
-                        top: -12.5%;
-                        left: 90%;
-
-                        &:hover { cursor: pointer; }
-                    }
-                }
             }
         }
 
-        .review {
+        #review {
             display: flex;
             flex-direction: row;
             justify-content: space-between;
             align-items: center;
             margin-top: -10px;
-            margin-bottom: 10px;
+            margin-bottom: 15px;
             min-width: 350px;
             min-height: 50px;
 

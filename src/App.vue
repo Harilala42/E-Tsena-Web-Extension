@@ -5,8 +5,8 @@
 
     const router = useRouter();
     
-    var showAuthentication = ref(true);
-    var statusAuth = ref('');
+    const showAuthentication = ref(true);
+    const statusAuth = ref('');
 
     onMounted(() => {
         chrome.storage.local.set({ 'e_tsena_state': '' });
@@ -36,7 +36,6 @@
             showAuthentication.value = false;
     }
 
-    // Début de l'authentification Oauth2.0 Google
     const authentication = async () => {
         try {
             statusAuth.value = 'load';
@@ -69,7 +68,6 @@
         }
     };
 
-    // Obtention d'un code de Google Server
     const getJWTAuthentication = () => {
         return new Promise((resolve, reject) => {
             let manifest = chrome.runtime.getManifest();
@@ -115,7 +113,6 @@
         });
     };
 
-    // Autorisation par l'utilisateur sur AE Open Platform
     const authorization = async () => {
         chrome.storage.local.get(['jwt'], (result) => {
             if (result.jwt) {

@@ -4,18 +4,18 @@
 
     const router = useRouter();
 
-    var warning = ref('');
-    var isEmptyField = ref(false);
-    var isFormSubmited = ref(false);
-    var address = ref({
+    const warning = ref('');
+    const isEmptyField = ref(false);
+    const isFormSubmited = ref(false);
+    const address = ref({
         isUpdated: false,
         content: ''
     });
-    var numberPhone = ref({
+    const numberPhone = ref({
         isUpdated: false,
         content: ''
     });
-    var user = ref({
+    const user = ref({
         picture: '',
         name: '',
         email: ''
@@ -215,14 +215,14 @@
 
 <template>
     <div class="container">
-        <div class="title">
+        <section id="title">
             <div class="icon-title">
                 <img src="/icons/person.svg" alt="profile">
                 <h1 class="text">Profile</h1>
             </div>
-        </div>
+        </section>
         <div class="horizontal-bar"></div>
-        <div class="user">
+        <section id="user">
             <div class="profile"
                 :style="{ 'background-image': user.picture ? `url('${user.picture}')` : 'none' }"
             ></div>
@@ -236,7 +236,7 @@
                     </div>
                 </button>
             </div>
-        </div>
+        </section>
         <form class="form" @submit.prevent="handleSubmit">
             <div class="address">
                 <div class="title">
@@ -312,7 +312,7 @@
         min-height: 500px;
         padding: 0;
 
-        .title {
+        #title {
             display: flex;
             flex-direction: row;
             align-items: center;
@@ -346,7 +346,7 @@
             margin-bottom: 20px;
         }
 
-        .user {
+        #user {
             display: flex;
             flex-direction: row;
             align-items: center;
