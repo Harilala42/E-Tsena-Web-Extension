@@ -281,86 +281,84 @@
 </script>
 
 <template>
-    <div class="container">
-        <section id="title">
-            <div class="icon-title">
-                <img src="/icons/shopping_cart.svg" alt="cart">
-                <h1 class="text">Panier d'Achat</h1>
-            </div>
-            <div class="icon-title">
-                <div class="vertical-bar"></div>
-                <img src="/icons/calendar.svg" alt="calendar">
-                <h1 class="date">{{ formatDate(Date.now()) }}</h1>
-            </div>
-        </section>
-        <div class="horizontal-bar"></div>
-        <section id="cart">
-            <div class="searchBar">
-                <input type="text" placeholder="Collez votre url ici" v-model="url" :value="truncatedUrl">
-                <div class="btnSearch">
-                    <img src="/icons/close_search.svg" v-if="url !== ''" alt="cart" @click="url = ''">
-                    <button @click="getProductInfo"
-                        :class="{ 'addItem': !sum.is_updated || !addItem, 'disabledAddItem': sum.is_updated || addItem }" 
-                        :disabled="sum.is_updated || addItem"
-                    >
-                        <img src="/icons/paste.svg" alt="cart"><p>Ajouter</p>
-                    </button>
-                </div>
-            </div>
-            <div class="empty_cart" v-if="selectedItems.length == 0">
-                <img src="/icons/empty_cart.png" alt="empty cart">
-                <p class="message">Le panier est vide.</p>
-            </div>
-            <div class="selectedProduct" v-else>
-                <CartItem v-for="(item, idx) in selectedItems"
-                    :key="item.item_id"
-                    :item="item" :index="idx"
-                    @choose="item_id = $event"
-                    @update="selectedItems[$event.idx].number_item = $event.quantity"
-                    @remove="selectedItems = selectedItems.filter(id => id.item_id !== $event)"
+    <section id="title">
+        <div class="icon-title">
+            <img src="/icons/shopping_cart.svg" alt="cart">
+            <h1 class="text">Panier d'Achat</h1>
+        </div>
+        <div class="icon-title">
+            <div class="vertical-bar"></div>
+            <img src="/icons/calendar.svg" alt="calendar">
+            <h1 class="date">{{ formatDate(Date.now()) }}</h1>
+        </div>
+    </section>
+    <div class="horizontal-bar"></div>
+    <section id="cart">
+        <div class="searchBar">
+            <input type="text" placeholder="Collez votre url ici" v-model="url" :value="truncatedUrl">
+            <div class="btnSearch">
+                <img src="/icons/close_search.svg" v-if="url !== ''" alt="cart" @click="url = ''">
+                <button @click="getProductInfo"
+                    :class="{ 'addItem': !sum.is_updated || !addItem, 'disabledAddItem': sum.is_updated || addItem }" 
+                    :disabled="sum.is_updated || addItem"
                 >
-                </CartItem>
+                    <img src="/icons/paste.svg" alt="cart"><p>Ajouter</p>
+                </button>
             </div>
-        </section>
-        <div class="horizontal-bar"></div>
-        <section id="review" v-if="!sum.is_updated">
-            <div class="total">
-                <p>Total :</p>
-                <p class="total_price">${{ totalPrice }}</p>
-                <p class="total_price">+</p>
-                <p class="txt_utils">15% de<br> commission</p>
-            </div>
-            <button 
-                :class="{
-                    'buyIt': isPurchaseButtonEnabled, 
-                    'disabled-buyIt': !isPurchaseButtonEnabled
-                }" 
-                :disabled="!isPurchaseButtonEnabled"
-                @click="purchaseOrder()"
+        </div>
+        <div class="empty_cart" v-if="selectedItems.length == 0">
+            <img src="/icons/empty_cart.png" alt="empty cart">
+            <p class="message">Le panier est vide.</p>
+        </div>
+        <div class="selectedProduct" v-else>
+            <CartItem v-for="(item, idx) in selectedItems"
+                :key="item.item_id"
+                :item="item" :index="idx"
+                @choose="item_id = $event"
+                @update="selectedItems[$event.idx].number_item = $event.quantity"
+                @remove="selectedItems = selectedItems.filter(id => id.item_id !== $event)"
             >
-                <p v-if="!purchaseIt">Acheter</p>
-                <span v-else class="load_purchase"></span>
-            </button>
-        </section>
-        <ReviewItem v-else></ReviewItem>
-        <div class="sku_item" v-if="item_id >= 0">
-            <div class="sku_id"
-                :class="{ 'disabled_option': sku.sku_available_stock <= 0 }"
-                v-for="sku in selectedItems[item_id].sku_item"
-                :key="selectedItems[item_id].sku_item.indexOf(sku)"
-                @click="chooseModel(selectedItems[item_id].sku_item.indexOf(sku), item_id)"
-            >
-                <p class="sku">
-                    {{ getVariantName(sku.ae_sku_property_dtos) }}
-                    <img src="/icons/check_circle.svg" 
-                        v-if="selectedItems[item_id].sku_item.indexOf(sku) === selectedItems[item_id].selectedSkuIndex" 
-                        alt="choice"
-                    >
-                </p>
-            </div>
-            <div class="close_win" @click="item_id = -1">
-                <img src="/icons/close.svg" alt="close">
-            </div>
+            </CartItem>
+        </div>
+    </section>
+    <div class="horizontal-bar"></div>
+    <section id="review" v-if="!sum.is_updated">
+        <div class="total">
+            <p>Total :</p>
+            <p class="total_price">${{ totalPrice }}</p>
+            <p class="total_price">+</p>
+            <p class="txt_utils">15% de<br> commission</p>
+        </div>
+        <button 
+            :class="{
+                'buyIt': isPurchaseButtonEnabled, 
+                'disabled-buyIt': !isPurchaseButtonEnabled
+            }" 
+            :disabled="!isPurchaseButtonEnabled"
+            @click="purchaseOrder()"
+        >
+            <p v-if="!purchaseIt">Acheter</p>
+            <span v-else class="load_purchase"></span>
+        </button>
+    </section>
+    <ReviewItem v-else></ReviewItem>
+    <div class="sku_item" v-if="item_id >= 0">
+        <div class="sku_id"
+            :class="{ 'disabled_option': sku.sku_available_stock <= 0 }"
+            v-for="sku in selectedItems[item_id].sku_item"
+            :key="selectedItems[item_id].sku_item.indexOf(sku)"
+            @click="chooseModel(selectedItems[item_id].sku_item.indexOf(sku), item_id)"
+        >
+            <p class="sku">
+                {{ getVariantName(sku.ae_sku_property_dtos) }}
+                <img src="/icons/check_circle.svg" 
+                    v-if="selectedItems[item_id].sku_item.indexOf(sku) === selectedItems[item_id].selectedSkuIndex" 
+                    alt="choice"
+                >
+            </p>
+        </div>
+        <div class="close_win" @click="item_id = -1">
+            <img src="/icons/close.svg" alt="close">
         </div>
     </div>
 </template>
@@ -368,326 +366,311 @@
 <style scoped lang="scss">
     @use '../style';
 
-    .container {
+    #title {
         display: flex;
-        flex-direction: column;
-        justify-content: center;
+        flex-direction: row;
         align-items: center;
-        position: relative;
-        background-color: style.$background-color;
-        min-width: 400px;
-        min-height: 500px;
-        padding: 0;
+        justify-content: space-between;
+        margin-bottom: 5px;
+        width: 350px;
 
-        #title {
+        .icon-title {
             display: flex;
             flex-direction: row;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 5px;
-            width: 350px;
+            gap: 5px;
 
-            .icon-title {
-                display: flex;
-                flex-direction: row;
-                gap: 5px;
-
-                img {
-                    width: 24px;
-                    height: 24px;
-                }
-
-                @mixin shared-h1 {
-                    font-weight: 800;
-                    font-size: 20px;
-                    color: style.$text-color;
-                }
-
-                .text {
-                    @include shared-h1;
-                    font-family: style.$font-MontserratAlternates-Bold;
-                }
-
-                .date {
-                    @include shared-h1;
-                    font-family: style.$font-MontserratAlternates-Regular;
-                }
-
-                .vertical-bar {
-                    width: 1px;
-                    height: 24px;
-                    background-color: style.$text-color;
-                }
-            }
-        }
-
-        .horizontal-bar {
-            width: 350px;
-            height: 1px;
-            background-color: style.$text-color;
-            margin-bottom: 10px;
-        }
-
-        #cart {
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            margin-bottom: 14px;
-
-            .searchBar {
-                display: flex;
-                flex-direction: row;
-                align-items: center;
-                background: style.$text-color;
-                justify-content: space-evenly;
-                border-radius: 15px;
-                border: none;
-                width: 350px;
-                height: 30px;
-                margin-bottom: 10px;
-
-                input[type="text"] {
-                    width: 200px;
-                    height: 30px;
-                    border: none;
-                    font-size: 12px;
-                    font-family: style.$font-Poppins-Regular;
-                    border-radius: 15px 0 0 15px;
-                    background-color: transparent;
-                    padding-left: 15px;
-
-                    &::placeholder {
-                        color: style.$secondary-color;
-                        font-size: 12px;
-                        font-family: style.$font-Poppins-Regular;
-                    }
-
-                    &:focus {
-                        outline: none;
-                        border: none;
-                        box-shadow: none;
-                    }
-                }
-
-                .btnSearch {
-                    display: flex;
-                    flex-direction: row;
-                    align-items: center;
-                    justify-content: flex-end;
-                    margin-right: 1px;
-                    width: 150px;
-
-                    img:first-child:hover { cursor: pointer; }
-
-                    @mixin shared-addItem {
-                        width: 100px;
-                        height: 28px;
-                        display: flex;
-                        flex-direction: row;
-                        justify-content: center;
-                        align-items: center;
-                        border-radius: 15px;
-                        border: none;
-
-                        img {
-                            width: 16px;
-                            height: 16px;
-                            margin-right: 5px;
-                        }
-
-                        p {
-                            font-weight: 800;
-                            font-size: 12px;
-                            font-family: style.$font-Poppins-Bold;
-                            color: style.$text-color;
-                        }
-                    }
-
-                    .addItem {
-                        @include shared-addItem;
-                        background-color: style.$primary-color;
-                        &:hover { cursor: pointer; }
-                    }
-
-                    .disabledAddItem {
-                        @include shared-addItem;
-                        background-color: #CA6037;
-                        &:hover { cursor: not-allowed; }
-                    }
-                }
+            img {
+                width: 24px;
+                height: 24px;
             }
 
-            .empty_cart {
-                display: flex;
-                flex-direction: column;
-                justify-content: center;
-                align-items: center;
-                min-width: 400px;
-                min-height: 355px;
-
-                .message {
-                    font-weight: 800;
-                    font-size: 20px;
-                    color: style.$text-color;
-                    font-family: style.$font-MontserratAlternates-Regular;
-                    margin-top: 5px;
-                }
-            }
-
-            .selectedProduct {
-                width: 400px;
-                min-height: 355px;
-                max-height: 355px;
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                overflow-y: auto;
-                overflow-x: hidden;
-                transition: max-height 0.8s ease;
-                gap: 5px;
-            }
-        }
-
-        #review {
-            display: flex;
-            flex-direction: row;
-            justify-content: space-between;
-            align-items: center;
-            margin-top: -10px;
-            margin-bottom: 15px;
-            min-width: 350px;
-            min-height: 50px;
-
-            .total {
-                display: flex;
-                flex-direction: row;
-                align-items: center;
-                gap: 8px;
-
-                @mixin shared_p {
-                    font-size: 20px;
-                    color: style.$text-color;
-                }
-
-                p:first-child {
-                    font-weight: 800;
-                    @include shared_p;
-                    font-family: style.$font-MontserratAlternates-Regular;
-                }
-
-                .total_price {
-                    @include shared_p;
-                    font-family: style.$font-MontserratAlternates-Bold;
-                }
-
-                .txt_utils {
-                    font-size: 10px;
-                    font-family: style.$font-MontserratAlternates-Bold;
-                    color: style.$text-color;
-                    text-align: center;
-                }
-            }
-
-            @mixin shared-btn {
-                width: 75px;
-                height: 30px;
+            @mixin shared-h1 {
+                font-weight: 800;
+                font-size: 20px;
                 color: style.$text-color;
-                font-family: style.$font-Poppins-Bold;
-                font-size: 10px;
-                border-radius: 10px;
-                border: none;
             }
 
-            button {
-                @include shared-btn;
-                background-color: style.$primary-color;
-
-                &:hover { cursor: pointer; }
+            .text {
+                @include shared-h1;
+                font-family: style.$font-MontserratAlternates-Bold;
             }
 
-            .disabled-buyIt {
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                background-color: #CA6037;
-                @include shared-btn;
-
-                .load_purchase {
-                    width: 12px;
-                    height: 12px;
-                    border: 2px solid #f3f3f3;
-                    border-top: 2px solid #3498db;
-                    border-radius: 50%;
-                    animation: spin 1s linear infinite;
-                }
-
-                &:hover { cursor: not-allowed; }
-            }
-        }
-
-        .sku_item {
-            width: 80%;
-            max-height: 80%;
-            overflow-y: auto;
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background-color: rgba(style.$secondary-color, 0.9);
-            border-top-left-radius: 15px;
-            border-bottom-left-radius: 15px;
-            padding: 20px;
-            z-index: 10;
-
-            .sku_id {
-                display: flex;
-                flex-direction: row;
-                flex-wrap: wrap;
-                width: fit-content;
-                text-align: start;
-                color: style.$text-color;
-                font-family: style.$font-Poppins-Bold;
-                font-size: 15px;
-                gap: 5px;
-
-                .sku {
-                    display: flex;
-                    gap: 5px;
-                }
-
-                &:hover { cursor: pointer; }
+            .date {
+                @include shared-h1;
+                font-family: style.$font-MontserratAlternates-Regular;
             }
 
-            .disabled_option {
-                pointer-events: none;
-                text-decoration: line-through solid style.$primary-color 2px;
-            }
-            
-            .close_win {
-                width: 50px;
-                height: 50px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                background-color: rgba(style.$primary-color, 0.75);
-                border-bottom-left-radius: 15px;
-                position: fixed;
-                top: 0;
-                right: 0;
-
-                img {
-                    width: 40px;
-                    height: 40px;
-                }
-
-                &:hover { cursor: pointer; }
+            .vertical-bar {
+                width: 1px;
+                height: 24px;
+                background-color: style.$text-color;
             }
         }
     }
 
+    .horizontal-bar {
+        width: 350px;
+        height: 1px;
+        background-color: style.$text-color;
+        margin-bottom: 10px;
+    }
+
+    #cart {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        margin-bottom: 15px;
+
+        .searchBar {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            background: style.$text-color;
+            justify-content: space-evenly;
+            border-radius: 15px;
+            border: none;
+            width: 350px;
+            height: 30px;
+            margin-bottom: 10px;
+
+            input[type="text"] {
+                width: 200px;
+                height: 30px;
+                border: none;
+                font-size: 12px;
+                font-family: style.$font-Poppins-Regular;
+                border-radius: 15px 0 0 15px;
+                background-color: transparent;
+                padding-left: 15px;
+
+                &::placeholder {
+                    color: style.$secondary-color;
+                    font-size: 12px;
+                    font-family: style.$font-Poppins-Regular;
+                }
+
+                &:focus {
+                    outline: none;
+                    border: none;
+                    box-shadow: none;
+                }
+            }
+
+            .btnSearch {
+                display: flex;
+                flex-direction: row;
+                align-items: center;
+                justify-content: flex-end;
+                margin-right: 1px;
+                width: 150px;
+
+                img:first-child:hover { cursor: pointer; }
+
+                @mixin shared-addItem {
+                    width: 100px;
+                    height: 28px;
+                    display: flex;
+                    flex-direction: row;
+                    justify-content: center;
+                    align-items: center;
+                    border-radius: 15px;
+                    border: none;
+
+                    img {
+                        width: 16px;
+                        height: 16px;
+                        margin-right: 5px;
+                    }
+
+                    p {
+                        font-weight: 800;
+                        font-size: 12px;
+                        font-family: style.$font-Poppins-Bold;
+                        color: style.$text-color;
+                    }
+                }
+
+                .addItem {
+                    @include shared-addItem;
+                    background-color: style.$primary-color;
+                    &:hover { cursor: pointer; }
+                }
+
+                .disabledAddItem {
+                    @include shared-addItem;
+                    background-color: #CA6037;
+                    &:hover { cursor: not-allowed; }
+                }
+            }
+        }
+
+        .empty_cart {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-width: 400px;
+            min-height: 355px;
+
+            .message {
+                font-weight: 800;
+                font-size: 20px;
+                color: style.$text-color;
+                font-family: style.$font-MontserratAlternates-Regular;
+                margin-top: 5px;
+            }
+        }
+
+        .selectedProduct {
+            width: 400px;
+            min-height: 355px;
+            max-height: 355px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            overflow-y: auto;
+            overflow-x: hidden;
+            transition: max-height 0.8s ease;
+            gap: 5px;
+        }
+    }
+
+    #review {
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+        min-width: 350px;
+
+        .total {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            gap: 8px;
+
+            @mixin shared_p {
+                font-size: 20px;
+                color: style.$text-color;
+            }
+
+            p:first-child {
+                font-weight: 800;
+                @include shared_p;
+                font-family: style.$font-MontserratAlternates-Regular;
+            }
+
+            .total_price {
+                @include shared_p;
+                font-family: style.$font-MontserratAlternates-Bold;
+            }
+
+            .txt_utils {
+                font-size: 10px;
+                font-family: style.$font-MontserratAlternates-Bold;
+                color: style.$text-color;
+                text-align: center;
+            }
+        }
+
+        @mixin shared-btn {
+            width: 75px;
+            height: 30px;
+            color: style.$text-color;
+            font-family: style.$font-Poppins-Bold;
+            font-size: 10px;
+            border-radius: 10px;
+            border: none;
+        }
+
+        button {
+            @include shared-btn;
+            background-color: style.$primary-color;
+
+            &:hover { cursor: pointer; }
+        }
+
+        .disabled-buyIt {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #CA6037;
+            @include shared-btn;
+
+            .load_purchase {
+                width: 12px;
+                height: 12px;
+                border: 2px solid #f3f3f3;
+                border-top: 2px solid #3498db;
+                border-radius: 50%;
+                animation: spin 1s linear infinite;
+            }
+
+            &:hover { cursor: not-allowed; }
+        }
+    }
+
+    .sku_item {
+        width: 80%;
+        max-height: 80%;
+        overflow-y: auto;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background-color: rgba(style.$secondary-color, 0.9);
+        border-top-left-radius: 15px;
+        border-bottom-left-radius: 15px;
+        padding: 20px;
+        z-index: 10;
+
+        .sku_id {
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+            width: fit-content;
+            text-align: start;
+            color: style.$text-color;
+            font-family: style.$font-Poppins-Bold;
+            font-size: 15px;
+            gap: 5px;
+
+            .sku {
+                display: flex;
+                gap: 5px;
+            }
+
+            &:hover { cursor: pointer; }
+        }
+
+        .disabled_option {
+            pointer-events: none;
+            text-decoration: line-through solid style.$primary-color 2px;
+        }
+        
+        .close_win {
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: rgba(style.$primary-color, 0.75);
+            border-bottom-left-radius: 15px;
+            position: fixed;
+            top: 0;
+            right: 0;
+
+            img {
+                width: 40px;
+                height: 40px;
+            }
+
+            &:hover { cursor: pointer; }
+        }
+    }
+
     @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
     }
 </style>

@@ -70,8 +70,8 @@
         flex-direction: row;
         justify-content: space-between;
         align-items: center;
-        background-color: style.$background-color;
-        padding: 15px 25px;
+        grid-area: header;
+        padding: 0 25px;
 
         .logo {
             display: flex;
@@ -116,13 +116,20 @@
         }
     }
 
+    main {
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        align-items: center;
+        grid-area: main;
+    }
+
     footer {
         display: flex;
         flex-direction: row;
         justify-content: center;
         align-items: center;
-        background-color: style.$background-color;
-        padding-bottom: 25px;
+        grid-area: footer;
         
         .icon_social {
             display: flex;

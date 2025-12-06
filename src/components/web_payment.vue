@@ -298,6 +298,7 @@
             p {
                 color: style.$text-color;
                 font-family: style.$font-Poppins-Regular;
+                font-weight: bold;
                 font-size: 12px;
             }
         }
@@ -464,7 +465,7 @@
     }
 
     @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
     }
 </style>

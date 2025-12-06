@@ -214,424 +214,414 @@
 </script>
 
 <template>
-    <div class="container">
-        <section id="title">
-            <div class="icon-title">
-                <img src="/icons/person.svg" alt="profile">
-                <h1 class="text">Profile</h1>
-            </div>
-        </section>
-        <div class="horizontal-bar"></div>
-        <section id="user">
-            <div class="profile"
-                :style="{ 'background-image': user.picture ? `url('${user.picture}')` : 'none' }"
-            ></div>
-            <div class="info">
-                <h2>{{ user.name }}</h2>
-                <button class="logout" @click="logoutUser()">
-                    <img src="/icons/google_lg.svg" alt="google logout">
-                    <div class="google">
-                        <p>Délier mon compte</p>
-                        <p>{{ truncatedEmail }}</p>
-                    </div>
+    <section id="title">
+        <div class="icon-title">
+            <img src="/icons/person.svg" alt="profile">
+            <h1 class="text">Profile</h1>
+        </div>
+    </section>
+    <div class="horizontal-bar"></div>
+    <section id="user">
+        <div class="profile"
+            :style="{ 'background-image': user.picture ? `url('${user.picture}')` : 'none' }"
+        ></div>
+        <div class="info">
+            <h2>{{ user.name }}</h2>
+            <button class="logout" @click="logoutUser()">
+                <img src="/icons/google_lg.svg" alt="google logout">
+                <div class="google">
+                    <p>Délier mon compte</p>
+                    <p>{{ truncatedEmail }}</p>
+                </div>
+            </button>
+        </div>
+    </section>
+    <form class="form" @submit.prevent="handleSubmit">
+        <div class="address">
+            <div class="title">
+                <div class="info">
+                    <img src="/icons/location.svg" alt="addresse de livraison">
+                    <h2>Adresse de Livraison</h2>
+                </div>
+                <button type="button" class="edit"
+                    @click="address.isUpdated = !address.isUpdated"
+                >
+                    <img src="/icons/edit_square.svg" alt="Modifier l'adresse">
                 </button>
             </div>
-        </section>
-        <form class="form" @submit.prevent="handleSubmit">
-            <div class="address">
-                <div class="title">
-                    <div class="info">
-                        <img src="/icons/location.svg" alt="addresse de livraison">
-                        <h2>Adresse de Livraison</h2>
-                    </div>
-                    <button type="button" class="edit"
-                        @click="address.isUpdated = !address.isUpdated"
-                    >
-                        <img src="/icons/edit_square.svg" alt="Modifier l'adresse">
-                    </button>
+            <input type="text"
+                v-model="address.content" :value="address.content"
+                :class="{ 'enabled_address': address.isUpdated && !isFormSubmited, 'disabled_address': !address.isUpdated || isFormSubmited }"
+                placeholder="Enter a delivery address"
+                :disabled="!address.isUpdated || isFormSubmited"
+            >
+            <p :class="{ 'counter': address.content.length < 200, 'counter_warning': address.content.length >= 200, 'counter_error': address.content.length >= 255 }">
+                {{ address.content.length }}/255 caractères.
+            </p>
+        </div>
+        <div class="phone">
+            <div class="title">
+                <div class="info">
+                    <img src="/icons/phone.svg" alt="contact physique">
+                    <h2>Numéro Mobile Money</h2>
                 </div>
-                <input type="text"
-                    v-model="address.content" :value="address.content"
-                    :class="{ 'enabled_address': address.isUpdated && !isFormSubmited, 'disabled_address': !address.isUpdated || isFormSubmited }"
-                    placeholder="Enter a delivery address"
-                    :disabled="!address.isUpdated || isFormSubmited"
+                <button type="button" class="edit" 
+                    @click="numberPhone.isUpdated = !numberPhone.isUpdated"
                 >
-                <p :class="{ 'counter': address.content.length < 200, 'counter_warning': address.content.length >= 200, 'counter_error': address.content.length >= 255 }">
-                    {{ address.content.length }}/255 caractères.
-                </p>
-            </div>
-            <div class="phone">
-                <div class="title">
-                    <div class="info">
-                        <img src="/icons/phone.svg" alt="contact physique">
-                        <h2>Numéro Mobile Money</h2>
-                    </div>
-                    <button type="button" class="edit" 
-                        @click="numberPhone.isUpdated = !numberPhone.isUpdated"
-                    >
-                        <img src="/icons/edit_square.svg" alt="Modifier le contact">
-                    </button>
-                </div>
-                <vue-tel-input v-model="numberPhone.content"
-                    :class="{ 'enabled_tel': warning === '' && numberPhone.isUpdated && !isFormSubmited, 'unabled_tel': !numberPhone.isUpdated || isFormSubmited, 'tel_error': warning !== '' }"
-                    :default-country="'MG'" :only-countries="['MG']"
-                    :disabled="!numberPhone.isUpdated || isFormSubmited"
-                />
-                <p class="error" v-if="warning !== ''">{{ warning }}</p>
-            </div>
-            <div class="action">
-                <router-link class="cancel" to="/shopping_cart">Annuler</router-link>
-                <button type="submit"
-                    :disabled="(!address.isUpdated && !numberPhone.isUpdated) || warning !== '' || isEmptyField"
-                    :class="{
-                        'record': address.isUpdated || numberPhone.isUpdated,
-                        'disabled-record':
-                            (!address.isUpdated && !numberPhone.isUpdated)
-                            || warning !== '' || isEmptyField || isFormSubmited
-                    }"
-                >
-                    <span v-if="isFormSubmited" class="load_record"></span>
-                    <img v-else src="/icons/save.svg" alt="enregistrer">
-                    <p>Enregistrer</p>
+                    <img src="/icons/edit_square.svg" alt="Modifier le contact">
                 </button>
             </div>
-        </form>
-    </div>
+            <vue-tel-input v-model="numberPhone.content"
+                :class="{ 'enabled_tel': warning === '' && numberPhone.isUpdated && !isFormSubmited, 'unabled_tel': !numberPhone.isUpdated || isFormSubmited, 'tel_error': warning !== '' }"
+                :default-country="'MG'" :only-countries="['MG']"
+                :disabled="!numberPhone.isUpdated || isFormSubmited"
+            />
+            <p class="error" v-if="warning !== ''">{{ warning }}</p>
+        </div>
+        <div class="action">
+            <router-link class="cancel" to="/shopping_cart">Annuler</router-link>
+            <button type="submit"
+                :disabled="(!address.isUpdated && !numberPhone.isUpdated) || warning !== '' || isEmptyField"
+                :class="{
+                    'record': address.isUpdated || numberPhone.isUpdated,
+                    'disabled-record':
+                        (!address.isUpdated && !numberPhone.isUpdated)
+                        || warning !== '' || isEmptyField || isFormSubmited
+                }"
+            >
+                <span v-if="isFormSubmited" class="load_record"></span>
+                <img v-else src="/icons/save.svg" alt="enregistrer">
+                <p>Enregistrer</p>
+            </button>
+        </div>
+    </form>
 </template>
 
 <style scoped lang="scss">
     @use '../style';
 
-    .container {
+    #title {
         display: flex;
-        flex-direction: column;
+        flex-direction: row;
         align-items: center;
-        justify-content: flex-start;
-        background-color: style.$background-color;
-        min-width: 400px;
-        min-height: 500px;
-        padding: 0;
+        justify-content: center;
+        margin-bottom: 5px;
+        width: 350px;
 
-        #title {
+        .icon-title {
             display: flex;
             flex-direction: row;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 5px;
-            width: 350px;
+            gap: 5px;
 
-            .icon-title {
-                display: flex;
-                flex-direction: row;
-                gap: 5px;
-
-                img {
-                    width: 24px;
-                    height: 24px;
-                }
-
-                .text {
-                    font-weight: 800;
-                    font-size: 20px;
-                    color: style.$text-color;
-                    font-family: style.$font-MontserratAlternates-Bold;
-                }
-            }
-        }
-
-        .horizontal-bar {
-            width: 350px;
-            height: 1px;
-            background-color: style.$text-color;
-            margin-bottom: 20px;
-        }
-
-        #user {
-            display: flex;
-            flex-direction: row;
-            align-items: center;
-            justify-content: space-between;
-            width: 350px;
-            gap: 10px;
-
-            .profile {
-                width: 100px;
-                height: 100px;
-                border-radius: 50%;
-                background-size: cover;
-                background-position: center;
-                background-repeat: no-repeat;
+            img {
+                width: 24px;
+                height: 24px;
             }
 
-            .info {
-                display: flex;
-                flex-direction: column;
-                justify-content: flex-start;
-                width: 250px;
-                gap: 5px;
-
-                h2 {
-                    font-weight: bold;
-                    font-size: 20px;
-                    font-family: style.$font-MontserratAlternates-Bold;
-                    color: style.$text-color;
-                }
-
-                button {
-                    border: none;
-                    display: flex;
-                    border-radius: 50px;
-                    flex-direction: row;
-                    align-items: center;
-                    justify-content: flex-start;
-                    background-color: style.$secondary-color;
-                    padding-left: 5px;
-                    min-width: 200px;
-                    min-height: 50px;
-
-                    img {
-                        width: 45px;
-                        height: 45px;
-                        background-size: cover;
-                        background-position: center;
-                        background-repeat: no-repeat;
-                    }
-
-                    .google {
-                        display: flex;
-                        flex-direction: column;
-                        justify-content: flex-end;
-                        text-align: left;
-                        font-size: 12px;
-                        font-weight: bold;
-                        font-family: style.$font-Roboto;
-                        color: style.$text-color;
-                        padding: 10px 0;
-                        cursor: pointer;
-
-                        p {
-                            display: flex;
-                            flex-wrap: nowrap;
-                            max-width: 200px;
-                        }
-                    }
-                }
+            .text {
+                font-weight: 800;
+                font-size: 20px;
+                color: style.$text-color;
+                font-family: style.$font-MontserratAlternates-Bold;
             }
         }
+    }
 
-        .form {
+    .horizontal-bar {
+        width: 350px;
+        height: 1px;
+        background-color: style.$text-color;
+        margin-bottom: 20px;
+    }
+
+    #user {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        width: 350px;
+        gap: 10px;
+
+        .profile {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+        }
+
+        .info {
             display: flex;
             flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            margin-top: 20px;
-            gap: 15px;
+            justify-content: flex-start;
+            width: 250px;
+            gap: 5px;
 
-            .title {
-                display: flex;
-                flex-direction: row;
-                justify-content: space-between;
-                margin-bottom: 10px;
-
-                @mixin shared_img {
-                    width: 24px;
-                    height: 24px;
-                }
-
-                .info {
-                    display: flex;
-                    flex-direction: row;
-                    align-items: center;
-                    gap: 5px;
-
-                    img { @include shared_img; }
-
-                    h2 {
-                        font-size: 20px;
-                        font-family: style.$font-MontserratAlternates-Bold;
-                        color: style.$text-color;
-                    }
-                }
-
-                .edit {
-                    border: none;
-                    background-color: transparent;
-                    cursor: pointer;
-
-                    img { @include shared_img; }
-                }
+            h2 {
+                font-weight: bold;
+                font-size: 20px;
+                font-family: style.$font-MontserratAlternates-Bold;
+                color: style.$text-color;
             }
 
-            @mixin shared_input {
-                font-size: 12px;
-                border-radius: 5px;
-                color: style.$secondary-color;
-                font-family: style.$font-Poppins-Regular;
-                background-color: style.$text-color;
+            button {
                 border: none;
-            }
-
-            .address {
-                @mixin shared_address {
-                    width: 95%;
-                    height: 30px;
-                    padding-left: 15px;
-                }
-
-                .enabled_address { 
-                    @include shared_input;
-                    @include shared_address;
-
-                    &::placeholder {
-                        font-size: 12px;
-                        color: style.$secondary-color;
-                        font-family: style.$font-Poppins-Regular;
-                    }
-
-                    &:hover, &:focus {
-                        outline: none;
-                        border-color: 1px solid rgb(52, 152, 219);
-                        box-shadow: 0 0 5px 2px rgb(52, 152, 219);
-                    }
-                }
-
-                .disabled_address {
-                    font-size: 12px;
-                    border-radius: 5px;
-                    @include shared_address;
-                    font-family: style.$font-Poppins-Regular;
-                    background-color: rgb(239, 239, 239);
-                    color: light-dark(rgb(84, 84, 84));
-                    cursor: not-allowed;
-                    border: none;
-                }
-
-                @mixin shared_counter {
-                    font-size: 12px;
-                    font-family: style.$font-Poppins-Regular;
-                    padding-top: 5px;
-                }
-
-                .counter {
-                    @include shared_counter;
-                    color: style.$text-color;
-                }
-
-                .counter_warning {
-                    color: #f4ac0f;
-                    @include shared_counter;
-                }
-
-                .counter_error {
-                    color: #ff0000;
-                    @include shared_counter;
-                }
-            }
-
-            .phone {
-                width: 100%;
-
-                @mixin shared_tel {
-                    width: 100%;
-                    height: 30px;
-                    @include shared_input;
-
-                    ::v-deep(.vti__dropdown-list) {
-                        width: 300px !important;
-                    }
-                }
-
-                .enabled_tel {
-                    @include shared_tel;
-
-                    &:hover,  &:focus {
-                        outline: none;
-                        border-color: rgb(52, 152, 219);
-                        box-shadow: 0 0 5px 2px rgb(52, 152, 219);
-                    }
-                }
-
-                .unabled_tel { @include shared_tel; }
-
-                .tel_error {
-                    @include shared_tel;
-                    box-shadow: 0 0 5px 2px rgba(244, 172, 15, 0.5);
-                }
-
-                .error {
-                    font-size: 12px;
-                    color: #f4ac0f;
-                    font-family: style.$font-Poppins-Regular;
-                    padding-top: 5px;
-                }
-            }
-
-            .action {
                 display: flex;
+                border-radius: 50px;
+                flex-direction: row;
                 align-items: center;
-                justify-content: flex-end;
-                width: 100%;
-                gap: 10px;
+                justify-content: flex-start;
+                background-color: style.$secondary-color;
+                padding-left: 5px;
+                min-width: 200px;
+                min-height: 50px;
 
-                @mixin button-shared {
-                    height: 35px;
-                    min-width: 75px;
+                img {
+                    width: 45px;
+                    height: 45px;
+                    background-size: cover;
+                    background-position: center;
+                    background-repeat: no-repeat;
+                }
+
+                .google {
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: flex-end;
+                    text-align: left;
                     font-size: 12px;
-                    border-radius: 10px;
+                    font-weight: bold;
+                    font-family: style.$font-Roboto;
                     color: style.$text-color;
-                    font-family: style.$font-Poppins-Bold, sans-serif;
-                    text-decoration: none;
-                    padding: 0 10px;
-                }
-
-                .cancel {
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    @include button-shared;
-                    border: 1px solid style.$primary-color;
-                    background-color: transparent;
+                    padding: 10px 0;
                     cursor: pointer;
-                }
 
-                @mixin record_shared {
-                    border: none;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    gap: 5px;
-                }
-
-                .record {
-                    @include record_shared;
-                    @include button-shared;
-                    background-color: style.$primary-color;
-                    cursor: pointer;
-                }
-
-                .disabled-record {
-                    @include record_shared;
-                    @include button-shared;
-                    background-color: #CA6037;
-
-                    .load_record {
-                        width: 15px;
-                        height: 15px;
-                        border: 2px solid #f3f3f3;
-                        border-top: 2px solid #3498db;
-                        border-radius: 50%;
-                        animation: spin 1s linear infinite;
+                    p {
+                        display: flex;
+                        flex-wrap: nowrap;
+                        max-width: 200px;
                     }
-
-                    &:hover { cursor: not-allowed; }
-                    &:has(.load_record) { cursor: wait; }
                 }
             }
         }
     }
 
+    .form {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        margin-top: 20px;
+        width: 350px;
+        gap: 15px;
+
+        .title {
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+            margin-bottom: 10px;
+
+            @mixin shared_img {
+                width: 24px;
+                height: 24px;
+            }
+
+            .info {
+                display: flex;
+                flex-direction: row;
+                align-items: center;
+                gap: 5px;
+
+                img { @include shared_img; }
+
+                h2 {
+                    font-size: 20px;
+                    font-family: style.$font-MontserratAlternates-Bold;
+                    color: style.$text-color;
+                }
+            }
+
+            .edit {
+                border: none;
+                background-color: transparent;
+                cursor: pointer;
+
+                img { @include shared_img; }
+            }
+        }
+
+        @mixin shared_input {
+            font-size: 12px;
+            border-radius: 5px;
+            color: style.$secondary-color;
+            font-family: style.$font-Poppins-Regular;
+            background-color: style.$text-color;
+            border: none;
+        }
+
+        .address {
+            width: 100%;
+
+            @mixin shared_address {
+                width: 95%;
+                height: 30px;
+                padding-left: 15px;
+            }
+
+            .enabled_address { 
+                @include shared_input;
+                @include shared_address;
+
+                &::placeholder {
+                    font-size: 12px;
+                    color: style.$secondary-color;
+                    font-family: style.$font-Poppins-Regular;
+                }
+
+                &:hover, &:focus {
+                    outline: none;
+                    border-color: 1px solid rgb(52, 152, 219);
+                    box-shadow: 0 0 5px 2px rgb(52, 152, 219);
+                }
+            }
+
+            .disabled_address {
+                font-size: 12px;
+                border-radius: 5px;
+                @include shared_address;
+                font-family: style.$font-Poppins-Regular;
+                background-color: rgb(239, 239, 239);
+                color: light-dark(rgb(84, 84, 84));
+                cursor: not-allowed;
+                border: none;
+            }
+
+            @mixin shared_counter {
+                font-size: 12px;
+                font-family: style.$font-Poppins-Regular;
+                padding-top: 5px;
+            }
+
+            .counter {
+                @include shared_counter;
+                color: style.$text-color;
+            }
+
+            .counter_warning {
+                color: #f4ac0f;
+                @include shared_counter;
+            }
+
+            .counter_error {
+                color: #ff0000;
+                @include shared_counter;
+            }
+        }
+
+        .phone {
+            width: 100%;
+
+            @mixin shared_tel {
+                width: 100%;
+                height: 30px;
+                @include shared_input;
+
+                ::v-deep(.vti__dropdown-list) {
+                    width: 300px !important;
+                }
+            }
+
+            .enabled_tel {
+                @include shared_tel;
+
+                &:hover,  &:focus {
+                    outline: none;
+                    border-color: rgb(52, 152, 219);
+                    box-shadow: 0 0 5px 2px rgb(52, 152, 219);
+                }
+            }
+
+            .unabled_tel { @include shared_tel; }
+
+            .tel_error {
+                @include shared_tel;
+                box-shadow: 0 0 5px 2px rgba(244, 172, 15, 0.5);
+            }
+
+            .error {
+                font-size: 12px;
+                color: #f4ac0f;
+                font-family: style.$font-Poppins-Regular;
+                padding-top: 5px;
+            }
+        }
+
+        .action {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            width: 100%;
+            gap: 10px;
+
+            @mixin button-shared {
+                height: 35px;
+                min-width: 75px;
+                font-size: 12px;
+                border-radius: 10px;
+                color: style.$text-color;
+                font-family: style.$font-Poppins-Bold, sans-serif;
+                text-decoration: none;
+                padding: 0 10px;
+            }
+
+            .cancel {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                @include button-shared;
+                border: 1px solid style.$primary-color;
+                background-color: transparent;
+                cursor: pointer;
+            }
+
+            @mixin record_shared {
+                border: none;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 5px;
+            }
+
+            .record {
+                @include record_shared;
+                @include button-shared;
+                background-color: style.$primary-color;
+                cursor: pointer;
+            }
+
+            .disabled-record {
+                @include record_shared;
+                @include button-shared;
+                background-color: #CA6037;
+
+                .load_record {
+                    width: 15px;
+                    height: 15px;
+                    border: 2px solid #f3f3f3;
+                    border-top: 2px solid #3498db;
+                    border-radius: 50%;
+                    animation: spin 1s linear infinite;
+                }
+
+                &:hover { cursor: not-allowed; }
+                &:has(.load_record) { cursor: wait; }
+            }
+        }
+    }
+
     @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
     }
 </style>

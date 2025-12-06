@@ -9,7 +9,7 @@
 </script>
 
 <template>
-    <div class="confirmation">
+    <section id="confirmation">
         <div class="info">
             <div class="cost">
                 <div class="calcul">
@@ -62,15 +62,14 @@
                 <button class="purchase" @click="router.push('/web_payment')">Payer</button>
             </div>
         </div>
-    </div>
+    </section>
 </template>
 
 <style scoped lang="scss">
     @use '../style';
 
-    .confirmation {
+    #confirmation {
         min-width: 350px;
-        min-height: 150px;
         background-color: style.$background-color;
 
         @mixin display-shared {
@@ -183,7 +182,7 @@
 
         .final {
             @include display-shared;
-            margin-bottom: 25px;
+            margin-bottom: 15px;
 
             .result {
                 display: flex;

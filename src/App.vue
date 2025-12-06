@@ -127,141 +127,155 @@
 </script>
 
 <template>
-    <div v-if="showAuthentication" class="auth">
-        <img src="/icons/e-tsena_lg_v.png" alt="brand" class="brand">
-        <div class="login">
-            <img src="/icons/login.svg" alt="login">
-            <h1>Connexion</h1>
+    <div class="container">
+        <div v-if="showAuthentication" class="auth">
+            <img src="/icons/e-tsena_lg_v.png" alt="brand" class="brand">
+            <div class="login">
+                <img src="/icons/login.svg" alt="login">
+                <h1>Connexion</h1>
+            </div>
+            <button @click="authentication"
+                :class="{ 'disabled-customBtn': statusAuth != 'identity', 'customBtn': statusAuth == 'identity' }"
+            >
+                <span class="icon" id="google"></span>
+                <span class="btnText">
+                    {{ statusAuth == 'load' ? 'Connexion en cours...' : 'Se connecter avec Google' }}
+                </span>
+                <span v-if="statusAuth == 'load'" class="spinner"></span>
+            </button>
+            <button @click="authorization"
+                :class="{ 'disabled-customBtn': statusAuth != 'authorization', 'customBtn': statusAuth == 'authorization' }"
+            >
+                <span class="icon" id="aliexpress"></span>
+                <span class="btnText">Autoriser l'extension web</span>
+            </button>
+            <p class="slogan">AliExpress à portée de <span class="cta">clic</span>!</p>
         </div>
-        <button @click="authentication"
-            :class="{ 'disabled-customBtn': statusAuth != 'identity', 'customBtn': statusAuth == 'identity' }"
-        >
-            <span class="icon" id="google"></span>
-            <span class="btnText">
-                {{ statusAuth == 'load' ? 'Connexion en cours...' : 'Se connecter avec Google' }}
-            </span>
-            <span v-if="statusAuth == 'load'" class="spinner"></span>
-        </button>
-        <button @click="authorization"
-            :class="{ 'disabled-customBtn': statusAuth != 'authorization', 'customBtn': statusAuth == 'authorization' }"
-        >
-            <span class="icon" id="aliexpress"></span>
-            <span class="btnText">Autoriser l'extension web</span>
-        </button>
-        <p class="slogan">AliExpress à portée de <span class="cta">clic</span>!</p>
+        <Layout v-else>
+            <router-view />
+        </Layout>
     </div>
-    <Layout v-else>
-        <router-view />
-    </Layout>
 </template>
 
 <style scoped lang="scss">
     @use 'style';
 
-    .auth {
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
+    .container {
+        width: 400px;
+        height: 600px;
+        position: relative;
         background-color: style.$background-color;
-        padding: 30px 0;
-        min-width: 400px;
-        min-height: 500px;
+    
+        display: grid;
+        grid-template-columns: 150px 1fr 150px;
+        grid-template-rows: 50px 1fr 50px;
+        grid-template-areas:
+            "header header header"
+            "main    main   main"
+            "footer footer footer";
 
-        .brand {
-            width: 250px;
-            height: 150px;
-        }
-
-        .login {
+        .auth {
             display: flex;
-            flex-direction: row;
-            margin-bottom: 21px;
-            gap: 5px;
-
-            img {
-                width: 35px;
-                height: 42px;
-            }
-
-            h1 {
-                font-size: 35px;
-                font-weight: bold;
-                font-family: style.$font-MontserratAlternates-Regular;
-                color: style.$text-color;
-            }
-        }
-
-        @mixin shared-customBtn-style {
-            display: flex;
-            flex-direction: row;
+            flex-direction: column;
+            justify-content: center;
             align-items: center;
-            background-color: style.$secondary-color;
-            color: style.$text-color;
-            width: 300px;
-            height: 50px;
-            margin-bottom: 21px;
-            padding-left: 20px;
-            border-radius: 50px;
-            border: thin solid style.$text-color;
-            box-shadow: 1px 1px 1px grey;
-            transition: all 1.5ms ease-out;
+            padding: 30px 0;
 
-            .icon {
-                width: 50px;
+            .brand {
+                width: 250px;
+                height: 150px;
+            }
+
+            .login {
+                display: flex;
+                flex-direction: row;
+                margin-bottom: 21px;
+                gap: 5px;
+
+                img {
+                    width: 35px;
+                    height: 42px;
+                }
+
+                h1 {
+                    font-size: 35px;
+                    font-weight: bold;
+                    font-family: style.$font-MontserratAlternates-Regular;
+                    color: style.$text-color;
+                }
+            }
+
+            @mixin shared-customBtn-style {
+                display: flex;
+                flex-direction: row;
+                align-items: center;
+                background-color: style.$secondary-color;
+                color: style.$text-color;
+                width: 300px;
                 height: 50px;
+                margin-bottom: 21px;
+                padding-left: 20px;
+                border-radius: 50px;
+                border: thin solid style.$text-color;
+                box-shadow: 1px 1px 1px grey;
+                transition: all 1.5ms ease-out;
+
+                .icon {
+                    width: 50px;
+                    height: 50px;
+                }
+
+                .btnText {
+                    padding-left: 5px;
+                    font-size: 14px;
+                    font-weight: bold;
+                    font-family: style.$font-Roboto;
+                }
+
+                .spinner {
+                    border: 2px solid #f3f3f3;
+                    border-top: 2px solid #3498db;
+                    border-radius: 50%;
+                    width: 16px;
+                    height: 16px;
+                    animation: spin 1s linear infinite;
+                    margin-left: 10px;
+                }
+
+                #google { background: url('/icons/google_lg.svg') transparent 5px 50% no-repeat; }
+                #aliexpress { background: url('/icons/aliexpress_lg.svg') transparent 5px 50% no-repeat; }
             }
 
-            .btnText {
-                padding-left: 5px;
-                font-size: 14px;
-                font-weight: bold;
-                font-family: style.$font-Roboto;
+
+            .customBtn {
+                @include shared-customBtn-style;
+                
+                &:hover {
+                    cursor: pointer;
+                    transform: scale(1.05);
+                }
             }
 
-            .spinner {
-                border: 2px solid #f3f3f3;
-                border-top: 2px solid #3498db;
-                border-radius: 50%;
-                width: 16px;
-                height: 16px;
-                animation: spin 1s linear infinite;
-                margin-left: 10px;
+            .disabled-customBtn {
+                @include shared-customBtn-style;
+                pointer-events: none;
+                opacity: 0.5;
+                cursor: not-allowed;
             }
 
-            #google { background: url('/icons/google_lg.svg') transparent 5px 50% no-repeat; }
-            #aliexpress { background: url('/icons/aliexpress_lg.svg') transparent 5px 50% no-repeat; }
-        }
+            .slogan {
+                font-weight: 1000;
+                font-size: 20px;
+                font-family: style.$font-MontserratAlternates-Bold;
+                color: style.$text-color;
 
-
-        .customBtn {
-            @include shared-customBtn-style;
-            
-            &:hover {
-                cursor: pointer;
-                transform: scale(1.05);
+                .cta { color: style.$primary-color; }
             }
-        }
-
-        .disabled-customBtn {
-            @include shared-customBtn-style;
-            pointer-events: none;
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        .slogan {
-            font-weight: 1000;
-            font-size: 20px;
-            font-family: style.$font-MontserratAlternates-Bold;
-            color: style.$text-color;
-
-            .cta { color: style.$primary-color; }
         }
     }
 
     @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
     }
 </style>
