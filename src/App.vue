@@ -127,31 +127,31 @@
 </script>
 
 <template>
-    <div class="container">
-        <div v-if="showAuthentication" class="auth">
-            <img src="/icons/e-tsena_lg_v.png" alt="brand" class="brand">
-            <div class="login">
-                <img src="/icons/login.svg" alt="login">
-                <h1>Connexion</h1>
-            </div>
-            <button @click="authentication"
-                :class="{ 'disabled-customBtn': statusAuth != 'identity', 'customBtn': statusAuth == 'identity' }"
-            >
-                <span class="icon" id="google"></span>
-                <span class="btnText">
-                    {{ statusAuth == 'load' ? 'Connexion en cours...' : 'Se connecter avec Google' }}
-                </span>
-                <span v-if="statusAuth == 'load'" class="spinner"></span>
-            </button>
-            <button @click="authorization"
-                :class="{ 'disabled-customBtn': statusAuth != 'authorization', 'customBtn': statusAuth == 'authorization' }"
-            >
-                <span class="icon" id="aliexpress"></span>
-                <span class="btnText">Autoriser l'extension web</span>
-            </button>
-            <p class="slogan">AliExpress à portée de <span class="cta">clic</span>!</p>
+    <div v-if="showAuthentication" class="auth">
+        <img src="/icons/e-tsena_lg_v.png" alt="brand" class="brand">
+        <div class="login">
+            <img src="/icons/login.svg" alt="login">
+            <h1>Connexion</h1>
         </div>
-        <Layout v-else>
+        <button @click="authentication"
+            :class="{ 'disabled-customBtn': statusAuth != 'identity', 'customBtn': statusAuth == 'identity' }"
+        >
+            <span class="icon" id="google"></span>
+            <span class="btnText">
+                {{ statusAuth == 'load' ? 'Connexion en cours...' : 'Se connecter avec Google' }}
+            </span>
+            <span v-if="statusAuth == 'load'" class="spinner"></span>
+        </button>
+        <button @click="authorization"
+            :class="{ 'disabled-customBtn': statusAuth != 'authorization', 'customBtn': statusAuth == 'authorization' }"
+        >
+            <span class="icon" id="aliexpress"></span>
+            <span class="btnText">Autoriser l'extension web</span>
+        </button>
+        <p class="slogan">AliExpress à portée de <span class="cta">clic</span>!</p>
+    </div>
+    <div class="container" v-else>
+        <Layout>
             <router-view />
         </Layout>
     </div>
@@ -173,104 +173,106 @@
             "header header header"
             "main    main   main"
             "footer footer footer";
+    }
 
-        .auth {
+    .auth {
+        width: 400px;
+        height: 500px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 30px 0;
+
+        .brand {
+            width: 250px;
+            height: 150px;
+        }
+
+        .login {
             display: flex;
-            flex-direction: column;
-            justify-content: center;
+            flex-direction: row;
+            margin-bottom: 21px;
+            gap: 5px;
+
+            img {
+                width: 35px;
+                height: 42px;
+            }
+
+            h1 {
+                font-size: 35px;
+                font-weight: bold;
+                font-family: style.$font-MontserratAlternates-Regular;
+                color: style.$text-color;
+            }
+        }
+
+        @mixin shared-customBtn-style {
+            display: flex;
+            flex-direction: row;
             align-items: center;
-            padding: 30px 0;
+            background-color: style.$secondary-color;
+            color: style.$text-color;
+            width: 300px;
+            height: 50px;
+            margin-bottom: 21px;
+            padding-left: 20px;
+            border-radius: 50px;
+            border: thin solid style.$text-color;
+            box-shadow: 1px 1px 1px grey;
+            transition: all 1.5ms ease-out;
 
-            .brand {
-                width: 250px;
-                height: 150px;
-            }
-
-            .login {
-                display: flex;
-                flex-direction: row;
-                margin-bottom: 21px;
-                gap: 5px;
-
-                img {
-                    width: 35px;
-                    height: 42px;
-                }
-
-                h1 {
-                    font-size: 35px;
-                    font-weight: bold;
-                    font-family: style.$font-MontserratAlternates-Regular;
-                    color: style.$text-color;
-                }
-            }
-
-            @mixin shared-customBtn-style {
-                display: flex;
-                flex-direction: row;
-                align-items: center;
-                background-color: style.$secondary-color;
-                color: style.$text-color;
-                width: 300px;
+            .icon {
+                width: 50px;
                 height: 50px;
-                margin-bottom: 21px;
-                padding-left: 20px;
-                border-radius: 50px;
-                border: thin solid style.$text-color;
-                box-shadow: 1px 1px 1px grey;
-                transition: all 1.5ms ease-out;
-
-                .icon {
-                    width: 50px;
-                    height: 50px;
-                }
-
-                .btnText {
-                    padding-left: 5px;
-                    font-size: 14px;
-                    font-weight: bold;
-                    font-family: style.$font-Roboto;
-                }
-
-                .spinner {
-                    border: 2px solid #f3f3f3;
-                    border-top: 2px solid #3498db;
-                    border-radius: 50%;
-                    width: 16px;
-                    height: 16px;
-                    animation: spin 1s linear infinite;
-                    margin-left: 10px;
-                }
-
-                #google { background: url('/icons/google_lg.svg') transparent 5px 50% no-repeat; }
-                #aliexpress { background: url('/icons/aliexpress_lg.svg') transparent 5px 50% no-repeat; }
             }
 
-
-            .customBtn {
-                @include shared-customBtn-style;
-                
-                &:hover {
-                    cursor: pointer;
-                    transform: scale(1.05);
-                }
+            .btnText {
+                padding-left: 5px;
+                font-size: 14px;
+                font-weight: bold;
+                font-family: style.$font-Roboto;
             }
 
-            .disabled-customBtn {
-                @include shared-customBtn-style;
-                pointer-events: none;
-                opacity: 0.5;
-                cursor: not-allowed;
+            .spinner {
+                border: 2px solid #f3f3f3;
+                border-top: 2px solid #3498db;
+                border-radius: 50%;
+                width: 16px;
+                height: 16px;
+                animation: spin 1s linear infinite;
+                margin-left: 10px;
             }
 
-            .slogan {
-                font-weight: 1000;
-                font-size: 20px;
-                font-family: style.$font-MontserratAlternates-Bold;
-                color: style.$text-color;
+            #google { background: url('/icons/google_lg.svg') transparent 5px 50% no-repeat; }
+            #aliexpress { background: url('/icons/aliexpress_lg.svg') transparent 5px 50% no-repeat; }
+        }
 
-                .cta { color: style.$primary-color; }
+
+        .customBtn {
+            @include shared-customBtn-style;
+            
+            &:hover {
+                cursor: pointer;
+                transform: scale(1.05);
             }
+        }
+
+        .disabled-customBtn {
+            @include shared-customBtn-style;
+            pointer-events: none;
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .slogan {
+            font-weight: 1000;
+            font-size: 20px;
+            font-family: style.$font-MontserratAlternates-Bold;
+            color: style.$text-color;
+
+            .cta { color: style.$primary-color; }
         }
     }
 

@@ -59,8 +59,7 @@
     const getProductInfo = async () => {
         try {
             const url_buffer = url.value;
-            if (url_buffer === '')
-                return ;
+            if (url_buffer === '') return;
 
             const itemId = await extractItemID(url_buffer);
             console.log(`ID Item: ${itemId}`);
@@ -97,13 +96,13 @@
                 selectedSkuIndex: 0,
                 number_item: 1
             });
-        } catch (error) {
-            const errorMessage = typeof error?.message === 'string' ? error.message 
-                : typeof error === 'string' ? error : 'An unknown error occurred';
+        } catch (err) {
+            const errorMessage = typeof err?.message === 'string' ? err.message 
+                : typeof err === 'string' ? err : 'An unknown error occurred';
 
             let userMessage = 'An unexpected error occurred';
             
-            if (error.response?.status === 404 || !error.response?.ok)
+            if (err.response?.status === 404 || !err.response?.ok)
                 userMessage = 'Un problème est survenu lors de la recherche 😓.';
             else if (errorMessage.includes('out of stock'))
                 userMessage = 'Le produit est en rupture de stock 😓.';
@@ -310,7 +309,7 @@
             <img src="/icons/empty_cart.png" alt="empty cart">
             <p class="message">Le panier est vide.</p>
         </div>
-        <div class="selectedProduct" v-else>
+        <TransitionGroup name="cartItem" tag="div" class="selectedProduct" v-else>
             <CartItem v-for="(item, idx) in selectedItems"
                 :key="item.item_id"
                 :item="item" :index="idx"
@@ -319,7 +318,7 @@
                 @remove="selectedItems = selectedItems.filter(id => id.item_id !== $event)"
             >
             </CartItem>
-        </div>
+        </TransitionGroup>
     </section>
     <div class="horizontal-bar"></div>
     <section id="review" v-if="!sum.is_updated">
@@ -510,7 +509,7 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            min-width: 400px;
+            width: 400px;
             min-height: 355px;
 
             .message {
@@ -525,14 +524,22 @@
         .selectedProduct {
             width: 400px;
             min-height: 355px;
-            max-height: 355px;
             display: flex;
             flex-direction: column;
             align-items: center;
-            overflow-y: auto;
-            overflow-x: hidden;
-            transition: max-height 0.8s ease;
             gap: 5px;
+
+            .cartItem-leave-active { transition: all 0.5s ease; }
+
+            .cartItem-leave-to { 
+                margin: 0;
+                padding: 0;
+                opacity: 0;
+                max-height: 0;
+                overflow: hidden;
+            }
+            
+            .cartItem-move { transition: transform 0.5s ease; }
         }
     }
 
