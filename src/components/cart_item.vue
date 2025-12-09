@@ -29,17 +29,17 @@
             : props.item.details;
     });
 
-    const getItemPrice = (item) => {
-        let info = item.order_model,
+    const getItemPrice = computed(() => {
+        let info = props.item.order_model,
             price = info.is_on_sale ? info.sale_price : info.price;
         return Number(price).toFixed(2) || 0;
-    };
+    });
 
-    const getDiscount = (item) => {
-        let info = item.order_model,
-            discount = info.is_on_sale ? `-${Math.round(((info.price - info.sale_price) / info.price) * 100)}%` : null;
-        return discount || undefined;
-    }
+    const getDiscount = computed(() => {
+        let info = props.item.order_model,
+            discount = info.is_on_sale ? `-${Math.round((1 - (info.sale_price / info.price)) * 100)}%` : 0;
+        return discount;
+    });
 
     const handleQuantity = (item, quantity) => {
         let newQuantity = Number(quantity);
@@ -96,7 +96,7 @@
             <div class="utils">
                 <img src="/icons/star.svg" alt="star">
                 <p class="rates">{{ item.rates }}</p>
-                <p class="discount" v-if="item.order_model.is_on_sale" >{{ getDiscount(item) }}</p>  
+                <p class="discount" v-if="item.order_model.is_on_sale" >{{ getDiscount }}</p>  
                 <p class="stock">({{ item.order_model.currentStock }} en stock)</p>     
             </div>
             <div class="details">
@@ -108,7 +108,7 @@
                 </p>
                 <div class="ref">
                     <div class="number">
-                        <p class="price">${{ getItemPrice(item) }}</p><p>X</p>
+                        <p class="price">${{ getItemPrice }}</p><p>X</p>
                         <div :class="{'nb_item_enabled': !showItemQuantity, 'nb_item_unabled': showItemQuantity}">
                             <p :class="{ 'nb_display': !sum.is_updated }">{{ item.number_item }}</p>
                             <input type="number" class="nb_input" 
