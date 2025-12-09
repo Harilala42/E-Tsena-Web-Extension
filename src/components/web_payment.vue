@@ -1,11 +1,11 @@
 <script setup>
     import { ref, computed, onMounted } from 'vue';
     import { useRouter } from 'vue-router';
-    import { useCounterStore } from '@/stores/currency';
+    import { useCurrencyStore } from '@/stores/currency';
     import { useOrderStore } from '@/stores/order';
 
     const router = useRouter();
-    const sum = useCounterStore();
+    const sum = useCurrencyStore();
     const order = useOrderStore();
     
     const recaptchaUrl = import.meta.env.VITE_URL_TURNSTILE;

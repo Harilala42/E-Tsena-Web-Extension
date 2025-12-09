@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 
-export const useCounterStore = defineStore('convertUSDtoMGA', {
+export const useCurrencyStore = defineStore('convertUSDtoMGA', {
     state: () => ({
         amount: 0,
         is_updated: false

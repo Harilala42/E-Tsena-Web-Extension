@@ -1,10 +1,10 @@
 <script setup>
-    import { useCounterStore } from '@/stores/currency';
+    import { useCurrencyStore } from '@/stores/currency';
     import { useOrderStore } from '@/stores/order';
     import { useRouter } from 'vue-router';
 
     const router = useRouter();
-    const sum = useCounterStore();
+    const sum = useCurrencyStore();
     const order = useOrderStore();
 </script>
 

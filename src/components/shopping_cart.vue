@@ -1,11 +1,11 @@
 <script setup>
     import { ref, computed, onMounted, watch } from 'vue';
-    import { useCounterStore } from '@/stores/currency';
+    import { useCurrencyStore } from '@/stores/currency';
     import { useOrderStore } from '@/stores/order';
     import ReviewItem from './review_order.vue';
     import CartItem from './cart_item.vue';
 
-    const sum = useCounterStore();
+    const sum = useCurrencyStore();
     const order = useOrderStore();
 
     const selectedItems = ref([]);
@@ -328,13 +328,9 @@
             <p class="total_price">+</p>
             <p class="txt_utils">15% de<br> commission</p>
         </div>
-        <button 
-            :class="{
-                'buyIt': isPurchaseButtonEnabled, 
-                'disabled-buyIt': !isPurchaseButtonEnabled
-            }" 
+        <button @click="purchaseOrder()"
+            :class="{ 'buyIt': isPurchaseButtonEnabled, 'disabled-buyIt': !isPurchaseButtonEnabled }" 
             :disabled="!isPurchaseButtonEnabled"
-            @click="purchaseOrder()"
         >
             <p v-if="!purchaseIt">Acheter</p>
             <span v-else class="load_purchase"></span>
@@ -344,16 +340,12 @@
     <div class="sku_item" v-if="item_id >= 0">
         <div class="sku_id"
             :class="{ 'disabled_option': sku.sku_available_stock <= 0 }"
-            v-for="sku in selectedItems[item_id].sku_item"
-            :key="selectedItems[item_id].sku_item.indexOf(sku)"
-            @click="chooseModel(selectedItems[item_id].sku_item.indexOf(sku), item_id)"
+            v-for="(sku, idx) in selectedItems[item_id].sku_item"
+            :key="idx" @click="chooseModel(idx, item_id)"
         >
             <p class="sku">
                 {{ getVariantName(sku.ae_sku_property_dtos) }}
-                <img src="/icons/check_circle.svg" 
-                    v-if="selectedItems[item_id].sku_item.indexOf(sku) === selectedItems[item_id].selectedSkuIndex" 
-                    alt="choice"
-                >
+                <img src="/icons/check_circle.svg" v-if="idx === selectedItems[item_id].selectedSkuIndex">
             </p>
         </div>
         <div class="close_win" @click="item_id = -1">

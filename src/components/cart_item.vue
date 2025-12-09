@@ -1,6 +1,6 @@
 <script setup>
-    import { ref } from 'vue';
-    import { useCounterStore } from '@/stores/currency';
+    import { ref, computed } from 'vue';
+    import { useCurrencyStore } from '@/stores/currency';
 
     const props = defineProps({
         item: {
@@ -16,11 +16,18 @@
 
     const emit = defineEmits(['remove', 'choose', 'update']);
 
-    const sum = useCounterStore();
+    const sum = useCurrencyStore();
 
-    const showFullText = ref({});
+    const showItemQuantity = ref(false);
+    const showFullDescription = ref(false);
     const itemQuantity = ref(props.item.number_item);
-    const showNumber = ref(-1);
+
+    const truncatedDescription = computed(() => {
+        if (showFullDescription.value) return props.item.details;
+        return props.item.details.length > 100
+            ? props.item.details.substring(0, 100) + '...'
+            : props.item.details;
+    });
 
     const getItemPrice = (item) => {
         let info = item.order_model,
@@ -78,11 +85,11 @@
 <template>
     <article class="item">
         <div class="models" @click="emit('choose', index)">
-            <div :class="{ 'img_models_shown': !sum.is_updated, 'img_models_hidden': sum.is_updated }" 
+            <div :aria-label="item.details"
+                :class="{ 'img_models_shown': !sum.is_updated, 'img_models_hidden': sum.is_updated }" 
                 :style="{ 'background-image': item.img_url ? `url('${item.img_url}')` : 'none' }"
-                :aria-label="item.item_id"
             >
-                <img src="/icons/choose.svg" v-if="!sum.is_updated" alt="choose" title="Choisir une option">
+                <img src="/icons/choose.svg" v-if="!sum.is_updated" alt="choose">
             </div>
         </div>
         <div class="info_product">
@@ -94,29 +101,23 @@
             </div>
             <div class="details">
                 <p class="description">
-                    {{
-                        showFullText[item.item_id] ? 
-                            item.details : 
-                            `${item.details.substring(0, 100)}${(item.details.length > 100 && !showFullText[item.item_id]) ? '...' : null}`
-                    }}
-                    <span v-if="item.details.length > 100" class="see_more" @click="showFullText[item.item_id] = !showFullText[item.item_id]">
-                        {{ showFullText[item.item_id] ? 'Voir moins' : 'Voir plus' }}
+                    {{ truncatedDescription }}
+                    <span class="see_more" v-if="item.details.length > 100" @click="showFullDescription = !showFullDescription">
+                        {{ showFullDescription ? 'Voir moins' : 'Voir plus' }}
                     </span>
                 </p>
                 <div class="ref">
                     <div class="number">
                         <p class="price">${{ getItemPrice(item) }}</p><p>X</p>
-                        <div :class="{'nb_item_enabled': index !== showNumber, 'nb_item_unabled': index === showNumber}">
+                        <div :class="{'nb_item_enabled': !showItemQuantity, 'nb_item_unabled': showItemQuantity}">
                             <p :class="{ 'nb_display': !sum.is_updated }">{{ item.number_item }}</p>
                             <input type="number" class="nb_input" 
                                 v-if="!sum.is_updated" v-model="itemQuantity" 
                                 :value="itemQuantity" :min="1"
                                 @input="handleQuantity(item, $event.target.value)"
                             >
-                            <button class="ajust_nb" v-if="!sum.is_updated" 
-                                @click="showNumber < 0 ? showNumber = index : showNumber !== index ? showNumber = index : showNumber = -1"
-                            >
-                                <img src="/icons/pencil.svg" alt="adjust number" width="18px" height="18px">
+                            <button class="ajust_nb" v-if="!sum.is_updated" @click="showItemQuantity = !showItemQuantity">
+                                <img src="/icons/pencil.svg" width="18px" height="18px">
                             </button>
                         </div>
                     </div>
@@ -128,7 +129,7 @@
             </div>
         </div>
         <img src="/icons/delete.svg" class="removeItem" alt="delete"
-            v-if="!showFullText[item.item_id] && !sum.is_updated"
+            v-if="!showFullDescription && !sum.is_updated"
             @click="emit('remove', item.item_id)"
         >
     </article>
